@@ -150,6 +150,8 @@ func compactKV(clients []*v3.Client) {
 		// the case when revToCompact < compact revision.
 		if err != nil {
 			log.Printf("error (%v) when current revision %d, revision to compact %d", err, curRev, revToCompact)
+		} else {
+			break
 		}
 	}
 }
