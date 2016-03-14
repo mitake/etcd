@@ -59,3 +59,23 @@ func BenchmarkStoreTxnPut(b *testing.B) {
 		s.TxnEnd(id)
 	}
 }
+
+func BenchmarkBundleCompaction(b *testing.B) {
+	be, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(be, &lease.FakeLessor{})
+	defer cleanup(s, be, tmpPath)
+
+	// arbitrary number of bytes
+	bytesN := 64
+	keys := createBytesSlice(bytesN, b.N)
+	vals := createBytesSlice(bytesN, b.N)
+
+	var rev int64
+
+	for i := 0; i < b.N; i++ {
+		rev = s.Put(keys[i], vals[i], lease.NoLease)
+	}
+
+	b.ResetTimer()
+	s.bundleCompaction(rev, s.kvindex.Compact(rev))
+}
