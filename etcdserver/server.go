@@ -411,6 +411,8 @@ func NewServer(cfg *ServerConfig) (*EtcdServer, error) {
 	}
 	srv.r.transport = tr
 
+	cl.setTransport(tr)
+
 	return srv, nil
 }
 
