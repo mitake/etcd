@@ -26,6 +26,7 @@ import (
 
 type (
 	AuthEnableResponse             pb.AuthEnableResponse
+	AuthSetKeysResponse            pb.AuthSetKeysResponse
 	AuthUserAddResponse            pb.AuthUserAddResponse
 	AuthUserDeleteResponse         pb.AuthUserDeleteResponse
 	AuthUserChangePasswordResponse pb.AuthUserChangePasswordResponse
@@ -45,6 +46,9 @@ const (
 type Auth interface {
 	// AuthEnable enables auth of an etcd cluster.
 	AuthEnable(ctx context.Context) (*AuthEnableResponse, error)
+
+	// AuthSetKeys sets keys for signing/veryfing tokens.
+	AuthSetKeys(ctx context.Context, signKey []byte, verifyKey []byte) (*AuthSetKeysResponse, error)
 
 	// UserAdd adds a new user to an etcd cluster.
 	UserAdd(ctx context.Context, name string, password string) (*AuthUserAddResponse, error)
@@ -84,6 +88,11 @@ func NewAuth(c *Client) Auth {
 func (auth *auth) AuthEnable(ctx context.Context) (*AuthEnableResponse, error) {
 	resp, err := auth.remote.AuthEnable(ctx, &pb.AuthEnableRequest{})
 	return (*AuthEnableResponse)(resp), err
+}
+
+func (auth *auth) AuthSetKeys(ctx context.Context, signKey []byte, verifyKey []byte) (*AuthSetKeysResponse, error) {
+	resp, err := auth.remote.AuthSetKeys(ctx, &pb.AuthSetKeysRequest{SignKey: signKey, VerifyKey: verifyKey})
+	return (*AuthSetKeysResponse)(resp), err
 }
 
 func (auth *auth) UserAdd(ctx context.Context, name string, password string) (*AuthUserAddResponse, error) {

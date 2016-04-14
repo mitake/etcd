@@ -94,6 +94,9 @@ service Auth {
   // AuthEnable enables authentication.
   rpc AuthEnable(AuthEnableRequest) returns (AuthEnableResponse) {}
 
+  // AuthSetKeys set keys for signing/verifying tokens.
+  rpc AuthSetKeys(AuthSetKeysRequest) returns (AuthSetKeysResponse) {}
+
   // AuthDisable disables authentication.
   rpc AuthDisable(AuthDisableRequest) returns (AuthDisableResponse) {}
 
@@ -504,6 +507,11 @@ message StatusResponse {
 message AuthEnableRequest {
 }
 
+message AuthSetKeysRequest {
+  bytes signKey = 1;
+  bytes verifyKey = 2;
+}
+
 message AuthDisableRequest {
 }
 
@@ -554,6 +562,10 @@ message AuthRoleRevokeRequest {
 }
 
 message AuthEnableResponse {
+  ResponseHeader header = 1;
+}
+
+message AuthSetKeysResponse {
   ResponseHeader header = 1;
 }
 

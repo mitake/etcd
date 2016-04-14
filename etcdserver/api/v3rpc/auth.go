@@ -36,6 +36,14 @@ func (as *AuthServer) AuthEnable(ctx context.Context, r *pb.AuthEnableRequest) (
 	return resp, nil
 }
 
+func (as *AuthServer) AuthSetKeys(ctx context.Context, r *pb.AuthSetKeysRequest) (*pb.AuthSetKeysResponse, error) {
+	resp, err := as.authenticator.AuthSetKeys(ctx, r)
+	if err != nil {
+		return nil, togRPCError(err)
+	}
+	return resp, nil
+}
+
 func (as *AuthServer) AuthDisable(ctx context.Context, r *pb.AuthDisableRequest) (*pb.AuthDisableResponse, error) {
 	plog.Info("not implemented yet")
 	return nil, nil

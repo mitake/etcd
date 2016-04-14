@@ -60,6 +60,7 @@
 		StatusRequest
 		StatusResponse
 		AuthEnableRequest
+		AuthSetKeysRequest
 		AuthDisableRequest
 		AuthenticateRequest
 		AuthUserAddRequest
@@ -74,6 +75,7 @@
 		AuthRoleGrantRequest
 		AuthRoleRevokeRequest
 		AuthEnableResponse
+		AuthSetKeysResponse
 		AuthDisableResponse
 		AuthenticateResponse
 		AuthUserAddResponse
@@ -94,9 +96,9 @@ import (
 	"fmt"
 
 	proto "github.com/gogo/protobuf/proto"
-
-	math "math"
 )
+
+import math "math"
 
 import io "io"
 

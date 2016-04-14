@@ -8,20 +8,19 @@ import (
 	"fmt"
 
 	proto "github.com/gogo/protobuf/proto"
-
-	math "math"
-
-	authpb "github.com/coreos/etcd/auth/authpb"
-
-	io "io"
 )
 
+import math "math"
+
 import storagepb "github.com/coreos/etcd/storage/storagepb"
+import authpb "github.com/coreos/etcd/auth/authpb"
 
 import (
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 )
+
+import io "io"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -761,10 +760,8 @@ func (m *TxnResponse) GetResponses() []*ResponseUnion {
 	return nil
 }
 
-// Compaction compacts the kv store upto the given revision (including).
-// It removes the old versions of a key. It keeps the newest version of
-// the key even if its latest modification revision is smaller than the given
-// revision.
+// Compaction compacts the kv store upto a given revision. All superseded keys
+// with a revision less than the compaction revision will be removed.
 type CompactionRequest struct {
 	Revision int64 `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
 	// physical is set so the RPC will wait until the compaction is physically
@@ -1312,6 +1309,15 @@ func (m *AuthEnableRequest) Reset()         { *m = AuthEnableRequest{} }
 func (m *AuthEnableRequest) String() string { return proto.CompactTextString(m) }
 func (*AuthEnableRequest) ProtoMessage()    {}
 
+type AuthSetKeysRequest struct {
+	SignKey   []byte `protobuf:"bytes,1,opt,name=signKey,proto3" json:"signKey,omitempty"`
+	VerifyKey []byte `protobuf:"bytes,2,opt,name=verifyKey,proto3" json:"verifyKey,omitempty"`
+}
+
+func (m *AuthSetKeysRequest) Reset()         { *m = AuthSetKeysRequest{} }
+func (m *AuthSetKeysRequest) String() string { return proto.CompactTextString(m) }
+func (*AuthSetKeysRequest) ProtoMessage()    {}
+
 type AuthDisableRequest struct {
 }
 
@@ -1429,6 +1435,21 @@ func (m *AuthEnableResponse) String() string { return proto.CompactTextString(m)
 func (*AuthEnableResponse) ProtoMessage()    {}
 
 func (m *AuthEnableResponse) GetHeader() *ResponseHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+type AuthSetKeysResponse struct {
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+}
+
+func (m *AuthSetKeysResponse) Reset()         { *m = AuthSetKeysResponse{} }
+func (m *AuthSetKeysResponse) String() string { return proto.CompactTextString(m) }
+func (*AuthSetKeysResponse) ProtoMessage()    {}
+
+func (m *AuthSetKeysResponse) GetHeader() *ResponseHeader {
 	if m != nil {
 		return m.Header
 	}
@@ -1676,6 +1697,7 @@ func init() {
 	proto.RegisterType((*StatusRequest)(nil), "etcdserverpb.StatusRequest")
 	proto.RegisterType((*StatusResponse)(nil), "etcdserverpb.StatusResponse")
 	proto.RegisterType((*AuthEnableRequest)(nil), "etcdserverpb.AuthEnableRequest")
+	proto.RegisterType((*AuthSetKeysRequest)(nil), "etcdserverpb.AuthSetKeysRequest")
 	proto.RegisterType((*AuthDisableRequest)(nil), "etcdserverpb.AuthDisableRequest")
 	proto.RegisterType((*AuthenticateRequest)(nil), "etcdserverpb.AuthenticateRequest")
 	proto.RegisterType((*AuthUserAddRequest)(nil), "etcdserverpb.AuthUserAddRequest")
@@ -1690,6 +1712,7 @@ func init() {
 	proto.RegisterType((*AuthRoleGrantRequest)(nil), "etcdserverpb.AuthRoleGrantRequest")
 	proto.RegisterType((*AuthRoleRevokeRequest)(nil), "etcdserverpb.AuthRoleRevokeRequest")
 	proto.RegisterType((*AuthEnableResponse)(nil), "etcdserverpb.AuthEnableResponse")
+	proto.RegisterType((*AuthSetKeysResponse)(nil), "etcdserverpb.AuthSetKeysResponse")
 	proto.RegisterType((*AuthDisableResponse)(nil), "etcdserverpb.AuthDisableResponse")
 	proto.RegisterType((*AuthenticateResponse)(nil), "etcdserverpb.AuthenticateResponse")
 	proto.RegisterType((*AuthUserAddResponse)(nil), "etcdserverpb.AuthUserAddResponse")
@@ -2533,6 +2556,8 @@ var _Maintenance_serviceDesc = grpc.ServiceDesc{
 type AuthClient interface {
 	// AuthEnable enables authentication.
 	AuthEnable(ctx context.Context, in *AuthEnableRequest, opts ...grpc.CallOption) (*AuthEnableResponse, error)
+	// AuthSetKeys set keys for signing/verifying tokens.
+	AuthSetKeys(ctx context.Context, in *AuthSetKeysRequest, opts ...grpc.CallOption) (*AuthSetKeysResponse, error)
 	// AuthDisable disables authentication.
 	AuthDisable(ctx context.Context, in *AuthDisableRequest, opts ...grpc.CallOption) (*AuthDisableResponse, error)
 	// Authenticate processes authenticate request.
@@ -2572,6 +2597,15 @@ func NewAuthClient(cc *grpc.ClientConn) AuthClient {
 func (c *authClient) AuthEnable(ctx context.Context, in *AuthEnableRequest, opts ...grpc.CallOption) (*AuthEnableResponse, error) {
 	out := new(AuthEnableResponse)
 	err := grpc.Invoke(ctx, "/etcdserverpb.Auth/AuthEnable", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authClient) AuthSetKeys(ctx context.Context, in *AuthSetKeysRequest, opts ...grpc.CallOption) (*AuthSetKeysResponse, error) {
+	out := new(AuthSetKeysResponse)
+	err := grpc.Invoke(ctx, "/etcdserverpb.Auth/AuthSetKeys", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2700,6 +2734,8 @@ func (c *authClient) RoleRevoke(ctx context.Context, in *AuthRoleRevokeRequest, 
 type AuthServer interface {
 	// AuthEnable enables authentication.
 	AuthEnable(context.Context, *AuthEnableRequest) (*AuthEnableResponse, error)
+	// AuthSetKeys set keys for signing/verifying tokens.
+	AuthSetKeys(context.Context, *AuthSetKeysRequest) (*AuthSetKeysResponse, error)
 	// AuthDisable disables authentication.
 	AuthDisable(context.Context, *AuthDisableRequest) (*AuthDisableResponse, error)
 	// Authenticate processes authenticate request.
@@ -2738,6 +2774,18 @@ func _Auth_AuthEnable_Handler(srv interface{}, ctx context.Context, dec func(int
 		return nil, err
 	}
 	out, err := srv.(AuthServer).AuthEnable(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Auth_AuthSetKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(AuthSetKeysRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(AuthServer).AuthSetKeys(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -2907,6 +2955,10 @@ var _Auth_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AuthEnable",
 			Handler:    _Auth_AuthEnable_Handler,
+		},
+		{
+			MethodName: "AuthSetKeys",
+			Handler:    _Auth_AuthSetKeys_Handler,
 		},
 		{
 			MethodName: "AuthDisable",
@@ -4654,6 +4706,40 @@ func (m *AuthEnableRequest) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
+func (m *AuthSetKeysRequest) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *AuthSetKeysRequest) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.SignKey != nil {
+		if len(m.SignKey) > 0 {
+			data[i] = 0xa
+			i++
+			i = encodeVarintRpc(data, i, uint64(len(m.SignKey)))
+			i += copy(data[i:], m.SignKey)
+		}
+	}
+	if m.VerifyKey != nil {
+		if len(m.VerifyKey) > 0 {
+			data[i] = 0x12
+			i++
+			i = encodeVarintRpc(data, i, uint64(len(m.VerifyKey)))
+			i += copy(data[i:], m.VerifyKey)
+		}
+	}
+	return i, nil
+}
+
 func (m *AuthDisableRequest) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4980,6 +5066,34 @@ func (m *AuthEnableResponse) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
+func (m *AuthSetKeysResponse) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *AuthSetKeysResponse) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n34, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n34
+	}
+	return i, nil
+}
+
 func (m *AuthDisableResponse) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -4999,11 +5113,11 @@ func (m *AuthDisableResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n34, err := m.Header.MarshalTo(data[i:])
+		n35, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n34
+		i += n35
 	}
 	return i, nil
 }
@@ -5027,11 +5141,11 @@ func (m *AuthenticateResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n35, err := m.Header.MarshalTo(data[i:])
+		n36, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n35
+		i += n36
 	}
 	return i, nil
 }
@@ -5055,11 +5169,11 @@ func (m *AuthUserAddResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n36, err := m.Header.MarshalTo(data[i:])
+		n37, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n36
+		i += n37
 	}
 	return i, nil
 }
@@ -5083,11 +5197,11 @@ func (m *AuthUserGetResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n37, err := m.Header.MarshalTo(data[i:])
+		n38, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n37
+		i += n38
 	}
 	return i, nil
 }
@@ -5111,11 +5225,11 @@ func (m *AuthUserDeleteResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n38, err := m.Header.MarshalTo(data[i:])
+		n39, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n38
+		i += n39
 	}
 	return i, nil
 }
@@ -5139,11 +5253,11 @@ func (m *AuthUserChangePasswordResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n39, err := m.Header.MarshalTo(data[i:])
+		n40, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n39
+		i += n40
 	}
 	return i, nil
 }
@@ -5167,11 +5281,11 @@ func (m *AuthUserGrantResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n40, err := m.Header.MarshalTo(data[i:])
+		n41, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n40
+		i += n41
 	}
 	return i, nil
 }
@@ -5195,11 +5309,11 @@ func (m *AuthUserRevokeResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n41, err := m.Header.MarshalTo(data[i:])
+		n42, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n41
+		i += n42
 	}
 	return i, nil
 }
@@ -5223,11 +5337,11 @@ func (m *AuthRoleAddResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n42, err := m.Header.MarshalTo(data[i:])
+		n43, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n42
+		i += n43
 	}
 	return i, nil
 }
@@ -5251,11 +5365,11 @@ func (m *AuthRoleGetResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n43, err := m.Header.MarshalTo(data[i:])
+		n44, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n43
+		i += n44
 	}
 	return i, nil
 }
@@ -5279,11 +5393,11 @@ func (m *AuthRoleDeleteResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n44, err := m.Header.MarshalTo(data[i:])
+		n45, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n44
+		i += n45
 	}
 	return i, nil
 }
@@ -5307,11 +5421,11 @@ func (m *AuthRoleGrantResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n45, err := m.Header.MarshalTo(data[i:])
+		n46, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n45
+		i += n46
 	}
 	return i, nil
 }
@@ -5335,11 +5449,11 @@ func (m *AuthRoleRevokeResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n46, err := m.Header.MarshalTo(data[i:])
+		n47, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n46
+		i += n47
 	}
 	return i, nil
 }
@@ -6110,6 +6224,24 @@ func (m *AuthEnableRequest) Size() (n int) {
 	return n
 }
 
+func (m *AuthSetKeysRequest) Size() (n int) {
+	var l int
+	_ = l
+	if m.SignKey != nil {
+		l = len(m.SignKey)
+		if l > 0 {
+			n += 1 + l + sovRpc(uint64(l))
+		}
+	}
+	if m.VerifyKey != nil {
+		l = len(m.VerifyKey)
+		if l > 0 {
+			n += 1 + l + sovRpc(uint64(l))
+		}
+	}
+	return n
+}
+
 func (m *AuthDisableRequest) Size() (n int) {
 	var l int
 	_ = l
@@ -6229,6 +6361,16 @@ func (m *AuthRoleRevokeRequest) Size() (n int) {
 }
 
 func (m *AuthEnableResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
+	return n
+}
+
+func (m *AuthSetKeysResponse) Size() (n int) {
 	var l int
 	_ = l
 	if m.Header != nil {
@@ -11246,6 +11388,118 @@ func (m *AuthEnableRequest) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+func (m *AuthSetKeysRequest) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRpc
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AuthSetKeysRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AuthSetKeysRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SignKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SignKey = append(m.SignKey[:0], data[iNdEx:postIndex]...)
+			if m.SignKey == nil {
+				m.SignKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VerifyKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VerifyKey = append(m.VerifyKey[:0], data[iNdEx:postIndex]...)
+			if m.VerifyKey == nil {
+				m.VerifyKey = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRpc(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthRpc
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *AuthDisableRequest) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
@@ -12217,6 +12471,89 @@ func (m *AuthEnableResponse) Unmarshal(data []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: AuthEnableResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &ResponseHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRpc(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthRpc
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AuthSetKeysResponse) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRpc
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AuthSetKeysResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AuthSetKeysResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

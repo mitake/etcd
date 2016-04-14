@@ -16,6 +16,7 @@ package auth
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"errors"
 	"sort"
 	"strings"
@@ -24,11 +25,14 @@ import (
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/storage/backend"
 	"github.com/coreos/pkg/capnslog"
+	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	enableFlagKey = []byte("authEnabled")
+	enableFlagKey  = []byte("authEnabled")
+	tokenSignKey   = []byte("tokenSignKey")
+	tokenVerifyKey = []byte("tokenVerifyKey")
 
 	authBucketName      = []byte("auth")
 	authUsersBucketName = []byte("authUsers")
@@ -45,6 +49,9 @@ var (
 type AuthStore interface {
 	// AuthEnable() turns on the authentication feature
 	AuthEnable()
+
+	// AuthSetKeys() sets keys for signing/veryfing tokens
+	AuthSetKeys(signKey []byte, verifyKey []byte) (*pb.AuthSetKeysResponse, error)
 
 	// Recover recovers the state of auth store from the given backend
 	Recover(b backend.Backend)
@@ -70,6 +77,9 @@ type AuthStore interface {
 
 type authStore struct {
 	be backend.Backend
+
+	signKey   *rsa.PrivateKey
+	verifyKey *rsa.PublicKey
 }
 
 func (as *authStore) AuthEnable() {
@@ -83,6 +93,30 @@ func (as *authStore) AuthEnable() {
 	b.ForceCommit()
 
 	plog.Noticef("Authentication enabled")
+}
+
+func (as *authStore) AuthSetKeys(signKey []byte, verifyKey []byte) (*pb.AuthSetKeysResponse, error) {
+	tx := as.be.BatchTx()
+	tx.Lock()
+	defer tx.Unlock()
+
+	var err error
+	as.signKey, err = jwt.ParseRSAPrivateKeyFromPEM(signKey)
+	if err != nil {
+		return nil, err
+	}
+
+	as.verifyKey, err = jwt.ParseRSAPublicKeyFromPEM(verifyKey)
+	if err != nil {
+		return nil, err
+	}
+
+	tx.UnsafePut(authBucketName, []byte(signKey), tokenSignKey)
+	tx.UnsafePut(authBucketName, []byte(verifyKey), tokenVerifyKey)
+
+	plog.Noticef("updated keys for signing/verifying tokens")
+
+	return &pb.AuthSetKeysResponse{}, nil
 }
 
 func (as *authStore) Recover(be backend.Backend) {
