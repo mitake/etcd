@@ -23,6 +23,7 @@ import (
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/pkg/capnslog"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/metadata"
 )
 
 var (
@@ -60,6 +61,11 @@ func (s *kvServer) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeResp
 }
 
 func (s *kvServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) {
+	md, _ := metadata.FromContext(ctx)
+	for k, v := range md {
+		plog.Info("key: ", k, ", val: ", v)
+	}
+
 	if err := checkPutRequest(r); err != nil {
 		return nil, err
 	}
