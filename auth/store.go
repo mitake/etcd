@@ -76,10 +76,20 @@ type AuthStore interface {
 
 	// RoleGrant grants a permission to a role
 	RoleGrant(r *pb.AuthRoleGrantRequest) (*pb.AuthRoleGrantResponse, error)
+
+	// TokenToUserID gets a UserID from the given Token
+	TokenToUserID(token string) (string, bool)
+
+	// IsPutPermitted checks put permission of the user
+	IsPutPermitted(userName string, key string) bool
+
+	// IsRangePermitted checks range permission of the user
+	IsRangePermitted(userName string, key string) bool
 }
 
 type authStore struct {
-	be backend.Backend
+	be      backend.Backend
+	enabled bool
 }
 
 func (as *authStore) AuthEnable() {
@@ -92,6 +102,7 @@ func (as *authStore) AuthEnable() {
 	tx.Unlock()
 	b.ForceCommit()
 
+	as.enabled = true
 	plog.Noticef("Authentication enabled")
 }
 
@@ -105,6 +116,7 @@ func (as *authStore) AuthDisable() {
 	tx.Unlock()
 	b.ForceCommit()
 
+	as.enabled = false
 	plog.Noticef("Authentication disabled")
 }
 
@@ -299,6 +311,11 @@ func (as *authStore) RoleAdd(r *pb.AuthRoleAddRequest) (*pb.AuthRoleAddResponse,
 	return &pb.AuthRoleAddResponse{}, nil
 }
 
+func (as *authStore) TokenToUserID(token string) (string, bool) {
+	t, ok := simpleTokens[token]
+	return t, ok
+}
+
 type permSlice []*authpb.Permission
 
 func (perms permSlice) Len() int {
@@ -359,6 +376,70 @@ func (as *authStore) RoleGrant(r *pb.AuthRoleGrantRequest) (*pb.AuthRoleGrantRes
 	plog.Noticef("role %s's permission of key %s is updated as %s", r.Name, r.Perm.Key, authpb.Permission_Type_name[int32(r.Perm.PermType)])
 
 	return &pb.AuthRoleGrantResponse{}, nil
+}
+
+func (as *authStore) isOpPermitted(userName string, key string, write bool, read bool) bool {
+	if !as.enabled {
+		return true
+	}
+
+	tx := as.be.BatchTx()
+	tx.Lock()
+	defer tx.Unlock()
+
+	_, vs := tx.UnsafeRange(authUsersBucketName, []byte(userName), nil, 0)
+	if len(vs) != 1 {
+		plog.Errorf("invalid user name %s for permission checking", userName)
+		return false
+	}
+
+	user := &authpb.User{}
+	err := user.Unmarshal(vs[0])
+	if err != nil {
+		plog.Errorf("failed to unmarshal user struct (name: %s): %s", userName, err)
+		return false
+	}
+
+	for _, roleName := range user.Roles {
+		_, vs := tx.UnsafeRange(authRolesBucketName, []byte(roleName), nil, 0)
+		if len(vs) != 1 {
+			plog.Errorf("invalid role name %s for permission checking", roleName)
+			return false
+		}
+
+		role := &authpb.Role{}
+		err := role.Unmarshal(vs[0])
+		if err != nil {
+			plog.Errorf("failed to unmarshal a role %s: %s", roleName, err)
+			return false
+		}
+
+		for _, perm := range role.KeyPermission {
+			if bytes.Compare(perm.Key, []byte(key)) == 0 {
+				if perm.PermType == authpb.READWRITE {
+					return true
+				}
+
+				if write && perm.PermType == authpb.WRITE {
+					return true
+				}
+
+				if read && perm.PermType == authpb.READ {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+func (as *authStore) IsPutPermitted(userName string, key string) bool {
+	return as.isOpPermitted(userName, key, true, false)
+}
+
+func (as *authStore) IsRangePermitted(userName string, key string) bool {
+	return as.isOpPermitted(userName, key, false, true)
 }
 
 func NewAuthStore(be backend.Backend) *authStore {
