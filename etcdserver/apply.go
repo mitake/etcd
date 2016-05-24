@@ -73,13 +73,13 @@ func (s *EtcdServer) applyV3Request(r *pb.InternalRaftRequest) *applyResult {
 	ar := &applyResult{}
 	switch {
 	case r.Range != nil:
-		if s.AuthStore().IsRangePermitted(r.UserID, string(r.Range.Key)) {
+		if s.AuthStore().IsRangePermitted(r.Header.Username, string(r.Range.Key)) {
 			ar.resp, ar.err = s.applyV3.Range(noTxn, r.Range)
 		} else {
 			ar.err = rpctypes.ErrGRPCPermissionDenied
 		}
 	case r.Put != nil:
-		if s.AuthStore().IsPutPermitted(r.UserID, string(r.Put.Key)) {
+		if s.AuthStore().IsPutPermitted(r.Header.Username, string(r.Put.Key)) {
 			ar.resp, ar.err = s.applyV3.Put(noTxn, r.Put)
 		} else {
 			ar.err = rpctypes.ErrGRPCPermissionDenied
