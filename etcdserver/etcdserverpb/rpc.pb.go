@@ -71,7 +71,7 @@ var RangeRequest_SortOrder_value = map[string]int32{
 func (x RangeRequest_SortOrder) String() string {
 	return proto.EnumName(RangeRequest_SortOrder_name, int32(x))
 }
-func (RangeRequest_SortOrder) EnumDescriptor() ([]byte, []int) { return fileDescriptorRpc, []int{1, 0} }
+func (RangeRequest_SortOrder) EnumDescriptor() ([]byte, []int) { return fileDescriptorRpc, []int{2, 0} }
 
 type RangeRequest_SortTarget int32
 
@@ -101,7 +101,7 @@ var RangeRequest_SortTarget_value = map[string]int32{
 func (x RangeRequest_SortTarget) String() string {
 	return proto.EnumName(RangeRequest_SortTarget_name, int32(x))
 }
-func (RangeRequest_SortTarget) EnumDescriptor() ([]byte, []int) { return fileDescriptorRpc, []int{1, 1} }
+func (RangeRequest_SortTarget) EnumDescriptor() ([]byte, []int) { return fileDescriptorRpc, []int{2, 1} }
 
 type Compare_CompareResult int32
 
@@ -125,7 +125,7 @@ var Compare_CompareResult_value = map[string]int32{
 func (x Compare_CompareResult) String() string {
 	return proto.EnumName(Compare_CompareResult_name, int32(x))
 }
-func (Compare_CompareResult) EnumDescriptor() ([]byte, []int) { return fileDescriptorRpc, []int{9, 0} }
+func (Compare_CompareResult) EnumDescriptor() ([]byte, []int) { return fileDescriptorRpc, []int{10, 0} }
 
 type Compare_CompareTarget int32
 
@@ -152,7 +152,7 @@ var Compare_CompareTarget_value = map[string]int32{
 func (x Compare_CompareTarget) String() string {
 	return proto.EnumName(Compare_CompareTarget_name, int32(x))
 }
-func (Compare_CompareTarget) EnumDescriptor() ([]byte, []int) { return fileDescriptorRpc, []int{9, 1} }
+func (Compare_CompareTarget) EnumDescriptor() ([]byte, []int) { return fileDescriptorRpc, []int{10, 1} }
 
 type AlarmRequest_AlarmAction int32
 
@@ -177,8 +177,18 @@ func (x AlarmRequest_AlarmAction) String() string {
 	return proto.EnumName(AlarmRequest_AlarmAction_name, int32(x))
 }
 func (AlarmRequest_AlarmAction) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptorRpc, []int{39, 0}
+	return fileDescriptorRpc, []int{40, 0}
 }
+
+type RequestHeader struct {
+	// username is a username that is associated with gRPC connection
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+}
+
+func (m *RequestHeader) Reset()                    { *m = RequestHeader{} }
+func (m *RequestHeader) String() string            { return proto.CompactTextString(m) }
+func (*RequestHeader) ProtoMessage()               {}
+func (*RequestHeader) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{0} }
 
 type ResponseHeader struct {
 	// cluster_id is the ID of the cluster which sent the response.
@@ -194,37 +204,45 @@ type ResponseHeader struct {
 func (m *ResponseHeader) Reset()                    { *m = ResponseHeader{} }
 func (m *ResponseHeader) String() string            { return proto.CompactTextString(m) }
 func (*ResponseHeader) ProtoMessage()               {}
-func (*ResponseHeader) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{0} }
+func (*ResponseHeader) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{1} }
 
 type RangeRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// key is the first key for the range. If range_end is not given, the request only looks up key.
-	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Key []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	// range_end is the upper bound on the requested range [key, range_end).
 	// If range_end is '\0', the range is all keys >= key.
-	RangeEnd []byte `protobuf:"bytes,2,opt,name=range_end,json=rangeEnd,proto3" json:"range_end,omitempty"`
+	RangeEnd []byte `protobuf:"bytes,3,opt,name=range_end,json=rangeEnd,proto3" json:"range_end,omitempty"`
 	// limit is a limit on the number of keys returned for the request.
-	Limit int64 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Limit int64 `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
 	// revision is the point-in-time of the key-value store to use for the range.
 	// If revision is less or equal to zero, the range is over the newest key-value store.
 	// If the revision has been compacted, ErrCompaction is returned as a response.
-	Revision int64 `protobuf:"varint,4,opt,name=revision,proto3" json:"revision,omitempty"`
+	Revision int64 `protobuf:"varint,5,opt,name=revision,proto3" json:"revision,omitempty"`
 	// sort_order is the order for returned sorted results.
-	SortOrder RangeRequest_SortOrder `protobuf:"varint,5,opt,name=sort_order,json=sortOrder,proto3,enum=etcdserverpb.RangeRequest_SortOrder" json:"sort_order,omitempty"`
+	SortOrder RangeRequest_SortOrder `protobuf:"varint,6,opt,name=sort_order,json=sortOrder,proto3,enum=etcdserverpb.RangeRequest_SortOrder" json:"sort_order,omitempty"`
 	// sort_target is the key-value field to use for sorting.
-	SortTarget RangeRequest_SortTarget `protobuf:"varint,6,opt,name=sort_target,json=sortTarget,proto3,enum=etcdserverpb.RangeRequest_SortTarget" json:"sort_target,omitempty"`
+	SortTarget RangeRequest_SortTarget `protobuf:"varint,7,opt,name=sort_target,json=sortTarget,proto3,enum=etcdserverpb.RangeRequest_SortTarget" json:"sort_target,omitempty"`
 	// serializable sets the range request to use serializable member-local reads.
 	// Range requests are linearizable by default; linearizable requests have higher
 	// latency and lower throughput than serializable requests but reflect the current
 	// consensus of the cluster. For better performance, in exchange for possible stale reads,
 	// a serializable range request is served locally without needing to reach consensus
 	// with other nodes in the cluster.
-	Serializable bool `protobuf:"varint,7,opt,name=serializable,proto3" json:"serializable,omitempty"`
+	Serializable bool `protobuf:"varint,8,opt,name=serializable,proto3" json:"serializable,omitempty"`
 }
 
 func (m *RangeRequest) Reset()                    { *m = RangeRequest{} }
 func (m *RangeRequest) String() string            { return proto.CompactTextString(m) }
 func (*RangeRequest) ProtoMessage()               {}
-func (*RangeRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{1} }
+func (*RangeRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{2} }
+
+func (m *RangeRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type RangeResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -237,7 +255,7 @@ type RangeResponse struct {
 func (m *RangeResponse) Reset()                    { *m = RangeResponse{} }
 func (m *RangeResponse) String() string            { return proto.CompactTextString(m) }
 func (*RangeResponse) ProtoMessage()               {}
-func (*RangeResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{2} }
+func (*RangeResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{3} }
 
 func (m *RangeResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -254,19 +272,27 @@ func (m *RangeResponse) GetKvs() []*mvccpb.KeyValue {
 }
 
 type PutRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// key is the key, in bytes, to put into the key-value store.
-	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Key []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	// value is the value, in bytes, to associate with the key in the key-value store.
-	Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Value []byte `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
 	// lease is the lease ID to associate with the key in the key-value store. A lease
 	// value of 0 indicates no lease.
-	Lease int64 `protobuf:"varint,3,opt,name=lease,proto3" json:"lease,omitempty"`
+	Lease int64 `protobuf:"varint,4,opt,name=lease,proto3" json:"lease,omitempty"`
 }
 
 func (m *PutRequest) Reset()                    { *m = PutRequest{} }
 func (m *PutRequest) String() string            { return proto.CompactTextString(m) }
 func (*PutRequest) ProtoMessage()               {}
-func (*PutRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{3} }
+func (*PutRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{4} }
+
+func (m *PutRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type PutResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -275,7 +301,7 @@ type PutResponse struct {
 func (m *PutResponse) Reset()                    { *m = PutResponse{} }
 func (m *PutResponse) String() string            { return proto.CompactTextString(m) }
 func (*PutResponse) ProtoMessage()               {}
-func (*PutResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{4} }
+func (*PutResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{5} }
 
 func (m *PutResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -285,18 +311,26 @@ func (m *PutResponse) GetHeader() *ResponseHeader {
 }
 
 type DeleteRangeRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// key is the first key to delete in the range.
-	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Key []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	// range_end is the key following the last key to delete for the range [key, range_end).
 	// If range_end is not given, the range is defined to contain only the key argument.
 	// If range_end is '\0', the range is all keys greater than or equal to the key argument.
-	RangeEnd []byte `protobuf:"bytes,2,opt,name=range_end,json=rangeEnd,proto3" json:"range_end,omitempty"`
+	RangeEnd []byte `protobuf:"bytes,3,opt,name=range_end,json=rangeEnd,proto3" json:"range_end,omitempty"`
 }
 
 func (m *DeleteRangeRequest) Reset()                    { *m = DeleteRangeRequest{} }
 func (m *DeleteRangeRequest) String() string            { return proto.CompactTextString(m) }
 func (*DeleteRangeRequest) ProtoMessage()               {}
-func (*DeleteRangeRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{5} }
+func (*DeleteRangeRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{6} }
+
+func (m *DeleteRangeRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type DeleteRangeResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -307,7 +341,7 @@ type DeleteRangeResponse struct {
 func (m *DeleteRangeResponse) Reset()                    { *m = DeleteRangeResponse{} }
 func (m *DeleteRangeResponse) String() string            { return proto.CompactTextString(m) }
 func (*DeleteRangeResponse) ProtoMessage()               {}
-func (*DeleteRangeResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{6} }
+func (*DeleteRangeResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{7} }
 
 func (m *DeleteRangeResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -329,7 +363,7 @@ type RequestUnion struct {
 func (m *RequestUnion) Reset()                    { *m = RequestUnion{} }
 func (m *RequestUnion) String() string            { return proto.CompactTextString(m) }
 func (*RequestUnion) ProtoMessage()               {}
-func (*RequestUnion) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{7} }
+func (*RequestUnion) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{8} }
 
 type isRequestUnion_Request interface {
 	isRequestUnion_Request()
@@ -485,7 +519,7 @@ type ResponseUnion struct {
 func (m *ResponseUnion) Reset()                    { *m = ResponseUnion{} }
 func (m *ResponseUnion) String() string            { return proto.CompactTextString(m) }
 func (*ResponseUnion) ProtoMessage()               {}
-func (*ResponseUnion) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{8} }
+func (*ResponseUnion) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{9} }
 
 type isResponseUnion_Response interface {
 	isResponseUnion_Response()
@@ -646,7 +680,7 @@ type Compare struct {
 func (m *Compare) Reset()                    { *m = Compare{} }
 func (m *Compare) String() string            { return proto.CompactTextString(m) }
 func (*Compare) ProtoMessage()               {}
-func (*Compare) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{9} }
+func (*Compare) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{10} }
 
 type isCompare_TargetUnion interface {
 	isCompare_TargetUnion()
@@ -816,22 +850,30 @@ func _Compare_OneofSizer(msg proto.Message) (n int) {
 // true.
 // 3. A list of database operations called f op. Like t op, but executed if guard evaluates to false.
 type TxnRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// compare is a list of predicates representing a conjunction of terms.
 	// If the comparisons succeed, then the success requests will be processed in order,
 	// and the response will contain their respective responses in order.
 	// If the comparisons fail, then the failure requests will be processed in order,
 	// and the response will contain their respective responses in order.
-	Compare []*Compare `protobuf:"bytes,1,rep,name=compare" json:"compare,omitempty"`
+	Compare []*Compare `protobuf:"bytes,2,rep,name=compare" json:"compare,omitempty"`
 	// success is a list of requests which will be applied when compare evaluates to true.
-	Success []*RequestUnion `protobuf:"bytes,2,rep,name=success" json:"success,omitempty"`
+	Success []*RequestUnion `protobuf:"bytes,3,rep,name=success" json:"success,omitempty"`
 	// failure is a list of requests which will be applied when compare evaluates to false.
-	Failure []*RequestUnion `protobuf:"bytes,3,rep,name=failure" json:"failure,omitempty"`
+	Failure []*RequestUnion `protobuf:"bytes,4,rep,name=failure" json:"failure,omitempty"`
 }
 
 func (m *TxnRequest) Reset()                    { *m = TxnRequest{} }
 func (m *TxnRequest) String() string            { return proto.CompactTextString(m) }
 func (*TxnRequest) ProtoMessage()               {}
-func (*TxnRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{10} }
+func (*TxnRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{11} }
+
+func (m *TxnRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 func (m *TxnRequest) GetCompare() []*Compare {
 	if m != nil {
@@ -866,7 +908,7 @@ type TxnResponse struct {
 func (m *TxnResponse) Reset()                    { *m = TxnResponse{} }
 func (m *TxnResponse) String() string            { return proto.CompactTextString(m) }
 func (*TxnResponse) ProtoMessage()               {}
-func (*TxnResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{11} }
+func (*TxnResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{12} }
 
 func (m *TxnResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -885,18 +927,26 @@ func (m *TxnResponse) GetResponses() []*ResponseUnion {
 // CompactionRequest compacts the key-value store up to a given revision. All superseded keys
 // with a revision less than the compaction revision will be removed.
 type CompactionRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// revision is the key-value store revision for the compaction operation.
-	Revision int64 `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
+	Revision int64 `protobuf:"varint,2,opt,name=revision,proto3" json:"revision,omitempty"`
 	// physical is set so the RPC will wait until the compaction is physically
 	// applied to the local database such that compacted entries are totally
 	// removed from the backend database.
-	Physical bool `protobuf:"varint,2,opt,name=physical,proto3" json:"physical,omitempty"`
+	Physical bool `protobuf:"varint,3,opt,name=physical,proto3" json:"physical,omitempty"`
 }
 
 func (m *CompactionRequest) Reset()                    { *m = CompactionRequest{} }
 func (m *CompactionRequest) String() string            { return proto.CompactTextString(m) }
 func (*CompactionRequest) ProtoMessage()               {}
-func (*CompactionRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{12} }
+func (*CompactionRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{13} }
+
+func (m *CompactionRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type CompactionResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -905,7 +955,7 @@ type CompactionResponse struct {
 func (m *CompactionResponse) Reset()                    { *m = CompactionResponse{} }
 func (m *CompactionResponse) String() string            { return proto.CompactTextString(m) }
 func (*CompactionResponse) ProtoMessage()               {}
-func (*CompactionResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{13} }
+func (*CompactionResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{14} }
 
 func (m *CompactionResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -915,12 +965,20 @@ func (m *CompactionResponse) GetHeader() *ResponseHeader {
 }
 
 type HashRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *HashRequest) Reset()                    { *m = HashRequest{} }
 func (m *HashRequest) String() string            { return proto.CompactTextString(m) }
 func (*HashRequest) ProtoMessage()               {}
-func (*HashRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{14} }
+func (*HashRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{15} }
+
+func (m *HashRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type HashResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -931,7 +989,7 @@ type HashResponse struct {
 func (m *HashResponse) Reset()                    { *m = HashResponse{} }
 func (m *HashResponse) String() string            { return proto.CompactTextString(m) }
 func (*HashResponse) ProtoMessage()               {}
-func (*HashResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{15} }
+func (*HashResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{16} }
 
 func (m *HashResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -941,12 +999,20 @@ func (m *HashResponse) GetHeader() *ResponseHeader {
 }
 
 type SnapshotRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *SnapshotRequest) Reset()                    { *m = SnapshotRequest{} }
 func (m *SnapshotRequest) String() string            { return proto.CompactTextString(m) }
 func (*SnapshotRequest) ProtoMessage()               {}
-func (*SnapshotRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{16} }
+func (*SnapshotRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{17} }
+
+func (m *SnapshotRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type SnapshotResponse struct {
 	// header has the current key-value store information. The first header in the snapshot
@@ -961,7 +1027,7 @@ type SnapshotResponse struct {
 func (m *SnapshotResponse) Reset()                    { *m = SnapshotResponse{} }
 func (m *SnapshotResponse) String() string            { return proto.CompactTextString(m) }
 func (*SnapshotResponse) ProtoMessage()               {}
-func (*SnapshotResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{17} }
+func (*SnapshotResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{18} }
 
 func (m *SnapshotResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -971,6 +1037,7 @@ func (m *SnapshotResponse) GetHeader() *ResponseHeader {
 }
 
 type WatchRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// request_union is a request to either create a new watcher or cancel an existing watcher.
 	//
 	// Types that are valid to be assigned to RequestUnion:
@@ -982,7 +1049,7 @@ type WatchRequest struct {
 func (m *WatchRequest) Reset()                    { *m = WatchRequest{} }
 func (m *WatchRequest) String() string            { return proto.CompactTextString(m) }
 func (*WatchRequest) ProtoMessage()               {}
-func (*WatchRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{18} }
+func (*WatchRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{19} }
 
 type isWatchRequest_RequestUnion interface {
 	isWatchRequest_RequestUnion()
@@ -991,10 +1058,10 @@ type isWatchRequest_RequestUnion interface {
 }
 
 type WatchRequest_CreateRequest struct {
-	CreateRequest *WatchCreateRequest `protobuf:"bytes,1,opt,name=create_request,json=createRequest,oneof"`
+	CreateRequest *WatchCreateRequest `protobuf:"bytes,2,opt,name=create_request,json=createRequest,oneof"`
 }
 type WatchRequest_CancelRequest struct {
-	CancelRequest *WatchCancelRequest `protobuf:"bytes,2,opt,name=cancel_request,json=cancelRequest,oneof"`
+	CancelRequest *WatchCancelRequest `protobuf:"bytes,3,opt,name=cancel_request,json=cancelRequest,oneof"`
 }
 
 func (*WatchRequest_CreateRequest) isWatchRequest_RequestUnion() {}
@@ -1003,6 +1070,13 @@ func (*WatchRequest_CancelRequest) isWatchRequest_RequestUnion() {}
 func (m *WatchRequest) GetRequestUnion() isWatchRequest_RequestUnion {
 	if m != nil {
 		return m.RequestUnion
+	}
+	return nil
+}
+
+func (m *WatchRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
 	}
 	return nil
 }
@@ -1034,12 +1108,12 @@ func _WatchRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 	// request_union
 	switch x := m.RequestUnion.(type) {
 	case *WatchRequest_CreateRequest:
-		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.CreateRequest); err != nil {
 			return err
 		}
 	case *WatchRequest_CancelRequest:
-		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		_ = b.EncodeVarint(3<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.CancelRequest); err != nil {
 			return err
 		}
@@ -1053,7 +1127,7 @@ func _WatchRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 func _WatchRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
 	m := msg.(*WatchRequest)
 	switch tag {
-	case 1: // request_union.create_request
+	case 2: // request_union.create_request
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -1061,7 +1135,7 @@ func _WatchRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.B
 		err := b.DecodeMessage(msg)
 		m.RequestUnion = &WatchRequest_CreateRequest{msg}
 		return true, err
-	case 2: // request_union.cancel_request
+	case 3: // request_union.cancel_request
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -1080,12 +1154,12 @@ func _WatchRequest_OneofSizer(msg proto.Message) (n int) {
 	switch x := m.RequestUnion.(type) {
 	case *WatchRequest_CreateRequest:
 		s := proto.Size(x.CreateRequest)
-		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *WatchRequest_CancelRequest:
 		s := proto.Size(x.CancelRequest)
-		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(3<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case nil:
@@ -1096,35 +1170,51 @@ func _WatchRequest_OneofSizer(msg proto.Message) (n int) {
 }
 
 type WatchCreateRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// key is the key to register for watching.
-	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Key []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	// range_end is the end of the range [key, range_end) to watch. If range_end is not given,
 	// only the key argument is watched. If range_end is equal to '\0', all keys greater than
 	// or equal to the key argument are watched.
-	RangeEnd []byte `protobuf:"bytes,2,opt,name=range_end,json=rangeEnd,proto3" json:"range_end,omitempty"`
+	RangeEnd []byte `protobuf:"bytes,3,opt,name=range_end,json=rangeEnd,proto3" json:"range_end,omitempty"`
 	// start_revision is an optional revision to watch from (inclusive). No start_revision is "now".
-	StartRevision int64 `protobuf:"varint,3,opt,name=start_revision,json=startRevision,proto3" json:"start_revision,omitempty"`
+	StartRevision int64 `protobuf:"varint,4,opt,name=start_revision,json=startRevision,proto3" json:"start_revision,omitempty"`
 	// progress_notify is set so that the etcd server will periodically send a WatchResponse with
 	// no events to the new watcher if there are no recent events. It is useful when clients
 	// wish to recover a disconnected watcher starting from a recent known revision.
 	// The etcd server may decide how often it will send notifications based on current load.
-	ProgressNotify bool `protobuf:"varint,4,opt,name=progress_notify,json=progressNotify,proto3" json:"progress_notify,omitempty"`
+	ProgressNotify bool `protobuf:"varint,5,opt,name=progress_notify,json=progressNotify,proto3" json:"progress_notify,omitempty"`
 }
 
 func (m *WatchCreateRequest) Reset()                    { *m = WatchCreateRequest{} }
 func (m *WatchCreateRequest) String() string            { return proto.CompactTextString(m) }
 func (*WatchCreateRequest) ProtoMessage()               {}
-func (*WatchCreateRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{19} }
+func (*WatchCreateRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{20} }
+
+func (m *WatchCreateRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type WatchCancelRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// watch_id is the watcher id to cancel so that no more events are transmitted.
-	WatchId int64 `protobuf:"varint,1,opt,name=watch_id,json=watchId,proto3" json:"watch_id,omitempty"`
+	WatchId int64 `protobuf:"varint,2,opt,name=watch_id,json=watchId,proto3" json:"watch_id,omitempty"`
 }
 
 func (m *WatchCancelRequest) Reset()                    { *m = WatchCancelRequest{} }
 func (m *WatchCancelRequest) String() string            { return proto.CompactTextString(m) }
 func (*WatchCancelRequest) ProtoMessage()               {}
-func (*WatchCancelRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{20} }
+func (*WatchCancelRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{21} }
+
+func (m *WatchCancelRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type WatchResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1153,7 +1243,7 @@ type WatchResponse struct {
 func (m *WatchResponse) Reset()                    { *m = WatchResponse{} }
 func (m *WatchResponse) String() string            { return proto.CompactTextString(m) }
 func (*WatchResponse) ProtoMessage()               {}
-func (*WatchResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{21} }
+func (*WatchResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{22} }
 
 func (m *WatchResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1170,16 +1260,24 @@ func (m *WatchResponse) GetEvents() []*mvccpb.Event {
 }
 
 type LeaseGrantRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// TTL is the advisory time-to-live in seconds.
-	TTL int64 `protobuf:"varint,1,opt,name=TTL,json=tTL,proto3" json:"TTL,omitempty"`
+	TTL int64 `protobuf:"varint,2,opt,name=TTL,json=tTL,proto3" json:"TTL,omitempty"`
 	// ID is the requested ID for the lease. If ID is set to 0, the lessor chooses an ID.
-	ID int64 `protobuf:"varint,2,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
+	ID int64 `protobuf:"varint,3,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
 }
 
 func (m *LeaseGrantRequest) Reset()                    { *m = LeaseGrantRequest{} }
 func (m *LeaseGrantRequest) String() string            { return proto.CompactTextString(m) }
 func (*LeaseGrantRequest) ProtoMessage()               {}
-func (*LeaseGrantRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{22} }
+func (*LeaseGrantRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{23} }
+
+func (m *LeaseGrantRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type LeaseGrantResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1193,7 +1291,7 @@ type LeaseGrantResponse struct {
 func (m *LeaseGrantResponse) Reset()                    { *m = LeaseGrantResponse{} }
 func (m *LeaseGrantResponse) String() string            { return proto.CompactTextString(m) }
 func (*LeaseGrantResponse) ProtoMessage()               {}
-func (*LeaseGrantResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{23} }
+func (*LeaseGrantResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{24} }
 
 func (m *LeaseGrantResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1203,14 +1301,22 @@ func (m *LeaseGrantResponse) GetHeader() *ResponseHeader {
 }
 
 type LeaseRevokeRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// ID is the lease ID to revoke. When the ID is revoked, all associated keys will be deleted.
-	ID int64 `protobuf:"varint,1,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
+	ID int64 `protobuf:"varint,2,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
 }
 
 func (m *LeaseRevokeRequest) Reset()                    { *m = LeaseRevokeRequest{} }
 func (m *LeaseRevokeRequest) String() string            { return proto.CompactTextString(m) }
 func (*LeaseRevokeRequest) ProtoMessage()               {}
-func (*LeaseRevokeRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{24} }
+func (*LeaseRevokeRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{25} }
+
+func (m *LeaseRevokeRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type LeaseRevokeResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1219,7 +1325,7 @@ type LeaseRevokeResponse struct {
 func (m *LeaseRevokeResponse) Reset()                    { *m = LeaseRevokeResponse{} }
 func (m *LeaseRevokeResponse) String() string            { return proto.CompactTextString(m) }
 func (*LeaseRevokeResponse) ProtoMessage()               {}
-func (*LeaseRevokeResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{25} }
+func (*LeaseRevokeResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{26} }
 
 func (m *LeaseRevokeResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1229,14 +1335,22 @@ func (m *LeaseRevokeResponse) GetHeader() *ResponseHeader {
 }
 
 type LeaseKeepAliveRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// ID is the lease ID for the lease to keep alive.
-	ID int64 `protobuf:"varint,1,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
+	ID int64 `protobuf:"varint,2,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
 }
 
 func (m *LeaseKeepAliveRequest) Reset()                    { *m = LeaseKeepAliveRequest{} }
 func (m *LeaseKeepAliveRequest) String() string            { return proto.CompactTextString(m) }
 func (*LeaseKeepAliveRequest) ProtoMessage()               {}
-func (*LeaseKeepAliveRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{26} }
+func (*LeaseKeepAliveRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{27} }
+
+func (m *LeaseKeepAliveRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type LeaseKeepAliveResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1249,7 +1363,7 @@ type LeaseKeepAliveResponse struct {
 func (m *LeaseKeepAliveResponse) Reset()                    { *m = LeaseKeepAliveResponse{} }
 func (m *LeaseKeepAliveResponse) String() string            { return proto.CompactTextString(m) }
 func (*LeaseKeepAliveResponse) ProtoMessage()               {}
-func (*LeaseKeepAliveResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{27} }
+func (*LeaseKeepAliveResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{28} }
 
 func (m *LeaseKeepAliveResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1272,17 +1386,25 @@ type Member struct {
 func (m *Member) Reset()                    { *m = Member{} }
 func (m *Member) String() string            { return proto.CompactTextString(m) }
 func (*Member) ProtoMessage()               {}
-func (*Member) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{28} }
+func (*Member) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{29} }
 
 type MemberAddRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// peerURLs is the list of URLs the added member will use to communicate with the cluster.
-	PeerURLs []string `protobuf:"bytes,1,rep,name=peerURLs" json:"peerURLs,omitempty"`
+	PeerURLs []string `protobuf:"bytes,2,rep,name=peerURLs" json:"peerURLs,omitempty"`
 }
 
 func (m *MemberAddRequest) Reset()                    { *m = MemberAddRequest{} }
 func (m *MemberAddRequest) String() string            { return proto.CompactTextString(m) }
 func (*MemberAddRequest) ProtoMessage()               {}
-func (*MemberAddRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{29} }
+func (*MemberAddRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{30} }
+
+func (m *MemberAddRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type MemberAddResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1293,7 +1415,7 @@ type MemberAddResponse struct {
 func (m *MemberAddResponse) Reset()                    { *m = MemberAddResponse{} }
 func (m *MemberAddResponse) String() string            { return proto.CompactTextString(m) }
 func (*MemberAddResponse) ProtoMessage()               {}
-func (*MemberAddResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{30} }
+func (*MemberAddResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{31} }
 
 func (m *MemberAddResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1310,14 +1432,22 @@ func (m *MemberAddResponse) GetMember() *Member {
 }
 
 type MemberRemoveRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// ID is the member ID of the member to remove.
-	ID uint64 `protobuf:"varint,1,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
+	ID uint64 `protobuf:"varint,2,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
 }
 
 func (m *MemberRemoveRequest) Reset()                    { *m = MemberRemoveRequest{} }
 func (m *MemberRemoveRequest) String() string            { return proto.CompactTextString(m) }
 func (*MemberRemoveRequest) ProtoMessage()               {}
-func (*MemberRemoveRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{31} }
+func (*MemberRemoveRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{32} }
+
+func (m *MemberRemoveRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type MemberRemoveResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1326,7 +1456,7 @@ type MemberRemoveResponse struct {
 func (m *MemberRemoveResponse) Reset()                    { *m = MemberRemoveResponse{} }
 func (m *MemberRemoveResponse) String() string            { return proto.CompactTextString(m) }
 func (*MemberRemoveResponse) ProtoMessage()               {}
-func (*MemberRemoveResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{32} }
+func (*MemberRemoveResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{33} }
 
 func (m *MemberRemoveResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1336,16 +1466,24 @@ func (m *MemberRemoveResponse) GetHeader() *ResponseHeader {
 }
 
 type MemberUpdateRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// ID is the member ID of the member to update.
-	ID uint64 `protobuf:"varint,1,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
+	ID uint64 `protobuf:"varint,2,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
 	// peerURLs is the new list of URLs the member will use to communicate with the cluster.
-	PeerURLs []string `protobuf:"bytes,2,rep,name=peerURLs" json:"peerURLs,omitempty"`
+	PeerURLs []string `protobuf:"bytes,3,rep,name=peerURLs" json:"peerURLs,omitempty"`
 }
 
 func (m *MemberUpdateRequest) Reset()                    { *m = MemberUpdateRequest{} }
 func (m *MemberUpdateRequest) String() string            { return proto.CompactTextString(m) }
 func (*MemberUpdateRequest) ProtoMessage()               {}
-func (*MemberUpdateRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{33} }
+func (*MemberUpdateRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{34} }
+
+func (m *MemberUpdateRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type MemberUpdateResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1354,7 +1492,7 @@ type MemberUpdateResponse struct {
 func (m *MemberUpdateResponse) Reset()                    { *m = MemberUpdateResponse{} }
 func (m *MemberUpdateResponse) String() string            { return proto.CompactTextString(m) }
 func (*MemberUpdateResponse) ProtoMessage()               {}
-func (*MemberUpdateResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{34} }
+func (*MemberUpdateResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{35} }
 
 func (m *MemberUpdateResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1364,12 +1502,20 @@ func (m *MemberUpdateResponse) GetHeader() *ResponseHeader {
 }
 
 type MemberListRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *MemberListRequest) Reset()                    { *m = MemberListRequest{} }
 func (m *MemberListRequest) String() string            { return proto.CompactTextString(m) }
 func (*MemberListRequest) ProtoMessage()               {}
-func (*MemberListRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{35} }
+func (*MemberListRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{36} }
+
+func (m *MemberListRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type MemberListResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1380,7 +1526,7 @@ type MemberListResponse struct {
 func (m *MemberListResponse) Reset()                    { *m = MemberListResponse{} }
 func (m *MemberListResponse) String() string            { return proto.CompactTextString(m) }
 func (*MemberListResponse) ProtoMessage()               {}
-func (*MemberListResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{36} }
+func (*MemberListResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{37} }
 
 func (m *MemberListResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1397,12 +1543,20 @@ func (m *MemberListResponse) GetMembers() []*Member {
 }
 
 type DefragmentRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *DefragmentRequest) Reset()                    { *m = DefragmentRequest{} }
 func (m *DefragmentRequest) String() string            { return proto.CompactTextString(m) }
 func (*DefragmentRequest) ProtoMessage()               {}
-func (*DefragmentRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{37} }
+func (*DefragmentRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{38} }
+
+func (m *DefragmentRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type DefragmentResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1411,7 +1565,7 @@ type DefragmentResponse struct {
 func (m *DefragmentResponse) Reset()                    { *m = DefragmentResponse{} }
 func (m *DefragmentResponse) String() string            { return proto.CompactTextString(m) }
 func (*DefragmentResponse) ProtoMessage()               {}
-func (*DefragmentResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{38} }
+func (*DefragmentResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{39} }
 
 func (m *DefragmentResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1421,21 +1575,29 @@ func (m *DefragmentResponse) GetHeader() *ResponseHeader {
 }
 
 type AlarmRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// action is the kind of alarm request to issue. The action
 	// may GET alarm statuses, ACTIVATE an alarm, or DEACTIVATE a
 	// raised alarm.
-	Action AlarmRequest_AlarmAction `protobuf:"varint,1,opt,name=action,proto3,enum=etcdserverpb.AlarmRequest_AlarmAction" json:"action,omitempty"`
+	Action AlarmRequest_AlarmAction `protobuf:"varint,2,opt,name=action,proto3,enum=etcdserverpb.AlarmRequest_AlarmAction" json:"action,omitempty"`
 	// memberID is the ID of the member associated with the alarm. If memberID is 0, the
 	// alarm request covers all members.
-	MemberID uint64 `protobuf:"varint,2,opt,name=memberID,proto3" json:"memberID,omitempty"`
+	MemberID uint64 `protobuf:"varint,3,opt,name=memberID,proto3" json:"memberID,omitempty"`
 	// alarm is the type of alarm to consider for this request.
-	Alarm AlarmType `protobuf:"varint,3,opt,name=alarm,proto3,enum=etcdserverpb.AlarmType" json:"alarm,omitempty"`
+	Alarm AlarmType `protobuf:"varint,4,opt,name=alarm,proto3,enum=etcdserverpb.AlarmType" json:"alarm,omitempty"`
 }
 
 func (m *AlarmRequest) Reset()                    { *m = AlarmRequest{} }
 func (m *AlarmRequest) String() string            { return proto.CompactTextString(m) }
 func (*AlarmRequest) ProtoMessage()               {}
-func (*AlarmRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{39} }
+func (*AlarmRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{40} }
+
+func (m *AlarmRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AlarmMember struct {
 	// memberID is the ID of the member associated with the raised alarm.
@@ -1447,7 +1609,7 @@ type AlarmMember struct {
 func (m *AlarmMember) Reset()                    { *m = AlarmMember{} }
 func (m *AlarmMember) String() string            { return proto.CompactTextString(m) }
 func (*AlarmMember) ProtoMessage()               {}
-func (*AlarmMember) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{40} }
+func (*AlarmMember) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{41} }
 
 type AlarmResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1458,7 +1620,7 @@ type AlarmResponse struct {
 func (m *AlarmResponse) Reset()                    { *m = AlarmResponse{} }
 func (m *AlarmResponse) String() string            { return proto.CompactTextString(m) }
 func (*AlarmResponse) ProtoMessage()               {}
-func (*AlarmResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{41} }
+func (*AlarmResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{42} }
 
 func (m *AlarmResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1475,12 +1637,20 @@ func (m *AlarmResponse) GetAlarms() []*AlarmMember {
 }
 
 type StatusRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *StatusRequest) Reset()                    { *m = StatusRequest{} }
 func (m *StatusRequest) String() string            { return proto.CompactTextString(m) }
 func (*StatusRequest) ProtoMessage()               {}
-func (*StatusRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{42} }
+func (*StatusRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{43} }
+
+func (m *StatusRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type StatusResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1499,7 +1669,7 @@ type StatusResponse struct {
 func (m *StatusResponse) Reset()                    { *m = StatusResponse{} }
 func (m *StatusResponse) String() string            { return proto.CompactTextString(m) }
 func (*StatusResponse) ProtoMessage()               {}
-func (*StatusResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{43} }
+func (*StatusResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{44} }
 
 func (m *StatusResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1509,22 +1679,39 @@ func (m *StatusResponse) GetHeader() *ResponseHeader {
 }
 
 type AuthEnableRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *AuthEnableRequest) Reset()                    { *m = AuthEnableRequest{} }
 func (m *AuthEnableRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthEnableRequest) ProtoMessage()               {}
-func (*AuthEnableRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{44} }
+func (*AuthEnableRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{45} }
+
+func (m *AuthEnableRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthDisableRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *AuthDisableRequest) Reset()                    { *m = AuthDisableRequest{} }
 func (m *AuthDisableRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthDisableRequest) ProtoMessage()               {}
-func (*AuthDisableRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{45} }
+func (*AuthDisableRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{46} }
+
+func (m *AuthDisableRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthenticateRequest struct {
+	// Authenticate() doesn't require the header because the auth metadata cannot be constructed before this RPC call
 	Name     string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Password string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 }
@@ -1532,107 +1719,187 @@ type AuthenticateRequest struct {
 func (m *AuthenticateRequest) Reset()                    { *m = AuthenticateRequest{} }
 func (m *AuthenticateRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthenticateRequest) ProtoMessage()               {}
-func (*AuthenticateRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{46} }
+func (*AuthenticateRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{47} }
 
 type AuthUserAddRequest struct {
-	Name     string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Password string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	Header   *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Name     string         `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Password string         `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
 }
 
 func (m *AuthUserAddRequest) Reset()                    { *m = AuthUserAddRequest{} }
 func (m *AuthUserAddRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthUserAddRequest) ProtoMessage()               {}
-func (*AuthUserAddRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{47} }
+func (*AuthUserAddRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{48} }
+
+func (m *AuthUserAddRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthUserGetRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *AuthUserGetRequest) Reset()                    { *m = AuthUserGetRequest{} }
 func (m *AuthUserGetRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthUserGetRequest) ProtoMessage()               {}
-func (*AuthUserGetRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{48} }
+func (*AuthUserGetRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{49} }
+
+func (m *AuthUserGetRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthUserDeleteRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// name is the name of the user to delete.
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 }
 
 func (m *AuthUserDeleteRequest) Reset()                    { *m = AuthUserDeleteRequest{} }
 func (m *AuthUserDeleteRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthUserDeleteRequest) ProtoMessage()               {}
-func (*AuthUserDeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{49} }
+func (*AuthUserDeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{50} }
+
+func (m *AuthUserDeleteRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthUserChangePasswordRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// name is the name of the user whose password is being changed.
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// password is the new password for the user.
-	Password string `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	Password string `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
 }
 
 func (m *AuthUserChangePasswordRequest) Reset()         { *m = AuthUserChangePasswordRequest{} }
 func (m *AuthUserChangePasswordRequest) String() string { return proto.CompactTextString(m) }
 func (*AuthUserChangePasswordRequest) ProtoMessage()    {}
 func (*AuthUserChangePasswordRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptorRpc, []int{50}
+	return fileDescriptorRpc, []int{51}
+}
+
+func (m *AuthUserChangePasswordRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
 }
 
 type AuthUserGrantRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// user is the name of the user which should be granted a given role.
-	User string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	User string `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
 	// role is the name of the role to grant to the user.
-	Role string `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`
+	Role string `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
 }
 
 func (m *AuthUserGrantRequest) Reset()                    { *m = AuthUserGrantRequest{} }
 func (m *AuthUserGrantRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthUserGrantRequest) ProtoMessage()               {}
-func (*AuthUserGrantRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{51} }
+func (*AuthUserGrantRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{52} }
+
+func (m *AuthUserGrantRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthUserRevokeRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *AuthUserRevokeRequest) Reset()                    { *m = AuthUserRevokeRequest{} }
 func (m *AuthUserRevokeRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthUserRevokeRequest) ProtoMessage()               {}
-func (*AuthUserRevokeRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{52} }
+func (*AuthUserRevokeRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{53} }
+
+func (m *AuthUserRevokeRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthRoleAddRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// name is the name of the role to add to the authentication system.
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 }
 
 func (m *AuthRoleAddRequest) Reset()                    { *m = AuthRoleAddRequest{} }
 func (m *AuthRoleAddRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthRoleAddRequest) ProtoMessage()               {}
-func (*AuthRoleAddRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{53} }
+func (*AuthRoleAddRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{54} }
+
+func (m *AuthRoleAddRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthRoleGetRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *AuthRoleGetRequest) Reset()                    { *m = AuthRoleGetRequest{} }
 func (m *AuthRoleGetRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthRoleGetRequest) ProtoMessage()               {}
-func (*AuthRoleGetRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{54} }
+func (*AuthRoleGetRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{55} }
+
+func (m *AuthRoleGetRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthRoleDeleteRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *AuthRoleDeleteRequest) Reset()                    { *m = AuthRoleDeleteRequest{} }
 func (m *AuthRoleDeleteRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthRoleDeleteRequest) ProtoMessage()               {}
-func (*AuthRoleDeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{55} }
+func (*AuthRoleDeleteRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{56} }
+
+func (m *AuthRoleDeleteRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthRoleGrantRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// name is the name of the role which will be granted the permission.
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// perm is the permission to grant to the role.
-	Perm *authpb.Permission `protobuf:"bytes,2,opt,name=perm" json:"perm,omitempty"`
+	Perm *authpb.Permission `protobuf:"bytes,3,opt,name=perm" json:"perm,omitempty"`
 }
 
 func (m *AuthRoleGrantRequest) Reset()                    { *m = AuthRoleGrantRequest{} }
 func (m *AuthRoleGrantRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthRoleGrantRequest) ProtoMessage()               {}
-func (*AuthRoleGrantRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{56} }
+func (*AuthRoleGrantRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{57} }
+
+func (m *AuthRoleGrantRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 func (m *AuthRoleGrantRequest) GetPerm() *authpb.Permission {
 	if m != nil {
@@ -1642,12 +1909,20 @@ func (m *AuthRoleGrantRequest) GetPerm() *authpb.Permission {
 }
 
 type AuthRoleRevokeRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 }
 
 func (m *AuthRoleRevokeRequest) Reset()                    { *m = AuthRoleRevokeRequest{} }
 func (m *AuthRoleRevokeRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthRoleRevokeRequest) ProtoMessage()               {}
-func (*AuthRoleRevokeRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{57} }
+func (*AuthRoleRevokeRequest) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{58} }
+
+func (m *AuthRoleRevokeRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type AuthEnableResponse struct {
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -1656,7 +1931,7 @@ type AuthEnableResponse struct {
 func (m *AuthEnableResponse) Reset()                    { *m = AuthEnableResponse{} }
 func (m *AuthEnableResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthEnableResponse) ProtoMessage()               {}
-func (*AuthEnableResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{58} }
+func (*AuthEnableResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{59} }
 
 func (m *AuthEnableResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1672,7 +1947,7 @@ type AuthDisableResponse struct {
 func (m *AuthDisableResponse) Reset()                    { *m = AuthDisableResponse{} }
 func (m *AuthDisableResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthDisableResponse) ProtoMessage()               {}
-func (*AuthDisableResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{59} }
+func (*AuthDisableResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{60} }
 
 func (m *AuthDisableResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1690,7 +1965,7 @@ type AuthenticateResponse struct {
 func (m *AuthenticateResponse) Reset()                    { *m = AuthenticateResponse{} }
 func (m *AuthenticateResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthenticateResponse) ProtoMessage()               {}
-func (*AuthenticateResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{60} }
+func (*AuthenticateResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{61} }
 
 func (m *AuthenticateResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1706,7 +1981,7 @@ type AuthUserAddResponse struct {
 func (m *AuthUserAddResponse) Reset()                    { *m = AuthUserAddResponse{} }
 func (m *AuthUserAddResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthUserAddResponse) ProtoMessage()               {}
-func (*AuthUserAddResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{61} }
+func (*AuthUserAddResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{62} }
 
 func (m *AuthUserAddResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1722,7 +1997,7 @@ type AuthUserGetResponse struct {
 func (m *AuthUserGetResponse) Reset()                    { *m = AuthUserGetResponse{} }
 func (m *AuthUserGetResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthUserGetResponse) ProtoMessage()               {}
-func (*AuthUserGetResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{62} }
+func (*AuthUserGetResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{63} }
 
 func (m *AuthUserGetResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1738,7 +2013,7 @@ type AuthUserDeleteResponse struct {
 func (m *AuthUserDeleteResponse) Reset()                    { *m = AuthUserDeleteResponse{} }
 func (m *AuthUserDeleteResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthUserDeleteResponse) ProtoMessage()               {}
-func (*AuthUserDeleteResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{63} }
+func (*AuthUserDeleteResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{64} }
 
 func (m *AuthUserDeleteResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1755,7 +2030,7 @@ func (m *AuthUserChangePasswordResponse) Reset()         { *m = AuthUserChangePa
 func (m *AuthUserChangePasswordResponse) String() string { return proto.CompactTextString(m) }
 func (*AuthUserChangePasswordResponse) ProtoMessage()    {}
 func (*AuthUserChangePasswordResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptorRpc, []int{64}
+	return fileDescriptorRpc, []int{65}
 }
 
 func (m *AuthUserChangePasswordResponse) GetHeader() *ResponseHeader {
@@ -1772,7 +2047,7 @@ type AuthUserGrantResponse struct {
 func (m *AuthUserGrantResponse) Reset()                    { *m = AuthUserGrantResponse{} }
 func (m *AuthUserGrantResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthUserGrantResponse) ProtoMessage()               {}
-func (*AuthUserGrantResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{65} }
+func (*AuthUserGrantResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{66} }
 
 func (m *AuthUserGrantResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1788,7 +2063,7 @@ type AuthUserRevokeResponse struct {
 func (m *AuthUserRevokeResponse) Reset()                    { *m = AuthUserRevokeResponse{} }
 func (m *AuthUserRevokeResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthUserRevokeResponse) ProtoMessage()               {}
-func (*AuthUserRevokeResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{66} }
+func (*AuthUserRevokeResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{67} }
 
 func (m *AuthUserRevokeResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1804,7 +2079,7 @@ type AuthRoleAddResponse struct {
 func (m *AuthRoleAddResponse) Reset()                    { *m = AuthRoleAddResponse{} }
 func (m *AuthRoleAddResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthRoleAddResponse) ProtoMessage()               {}
-func (*AuthRoleAddResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{67} }
+func (*AuthRoleAddResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{68} }
 
 func (m *AuthRoleAddResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1820,7 +2095,7 @@ type AuthRoleGetResponse struct {
 func (m *AuthRoleGetResponse) Reset()                    { *m = AuthRoleGetResponse{} }
 func (m *AuthRoleGetResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthRoleGetResponse) ProtoMessage()               {}
-func (*AuthRoleGetResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{68} }
+func (*AuthRoleGetResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{69} }
 
 func (m *AuthRoleGetResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1836,7 +2111,7 @@ type AuthRoleDeleteResponse struct {
 func (m *AuthRoleDeleteResponse) Reset()                    { *m = AuthRoleDeleteResponse{} }
 func (m *AuthRoleDeleteResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthRoleDeleteResponse) ProtoMessage()               {}
-func (*AuthRoleDeleteResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{69} }
+func (*AuthRoleDeleteResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{70} }
 
 func (m *AuthRoleDeleteResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1852,7 +2127,7 @@ type AuthRoleGrantResponse struct {
 func (m *AuthRoleGrantResponse) Reset()                    { *m = AuthRoleGrantResponse{} }
 func (m *AuthRoleGrantResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthRoleGrantResponse) ProtoMessage()               {}
-func (*AuthRoleGrantResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{70} }
+func (*AuthRoleGrantResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{71} }
 
 func (m *AuthRoleGrantResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1868,7 +2143,7 @@ type AuthRoleRevokeResponse struct {
 func (m *AuthRoleRevokeResponse) Reset()                    { *m = AuthRoleRevokeResponse{} }
 func (m *AuthRoleRevokeResponse) String() string            { return proto.CompactTextString(m) }
 func (*AuthRoleRevokeResponse) ProtoMessage()               {}
-func (*AuthRoleRevokeResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{71} }
+func (*AuthRoleRevokeResponse) Descriptor() ([]byte, []int) { return fileDescriptorRpc, []int{72} }
 
 func (m *AuthRoleRevokeResponse) GetHeader() *ResponseHeader {
 	if m != nil {
@@ -1878,6 +2153,7 @@ func (m *AuthRoleRevokeResponse) GetHeader() *ResponseHeader {
 }
 
 func init() {
+	proto.RegisterType((*RequestHeader)(nil), "etcdserverpb.RequestHeader")
 	proto.RegisterType((*ResponseHeader)(nil), "etcdserverpb.ResponseHeader")
 	proto.RegisterType((*RangeRequest)(nil), "etcdserverpb.RangeRequest")
 	proto.RegisterType((*RangeResponse)(nil), "etcdserverpb.RangeResponse")
@@ -3395,6 +3671,30 @@ var _Auth_serviceDesc = grpc.ServiceDesc{
 	Streams: []grpc.StreamDesc{},
 }
 
+func (m *RequestHeader) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *RequestHeader) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Username) > 0 {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(len(m.Username)))
+		i += copy(data[i:], m.Username)
+	}
+	return i, nil
+}
+
 func (m *ResponseHeader) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -3448,40 +3748,50 @@ func (m *RangeRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
+	if m.Header != nil {
 		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n1, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n1
+	}
+	if len(m.Key) > 0 {
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Key)))
 		i += copy(data[i:], m.Key)
 	}
 	if len(m.RangeEnd) > 0 {
-		data[i] = 0x12
+		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.RangeEnd)))
 		i += copy(data[i:], m.RangeEnd)
 	}
 	if m.Limit != 0 {
-		data[i] = 0x18
+		data[i] = 0x20
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Limit))
 	}
 	if m.Revision != 0 {
-		data[i] = 0x20
+		data[i] = 0x28
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Revision))
 	}
 	if m.SortOrder != 0 {
-		data[i] = 0x28
+		data[i] = 0x30
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.SortOrder))
 	}
 	if m.SortTarget != 0 {
-		data[i] = 0x30
+		data[i] = 0x38
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.SortTarget))
 	}
 	if m.Serializable {
-		data[i] = 0x38
+		data[i] = 0x40
 		i++
 		if m.Serializable {
 			data[i] = 1
@@ -3512,11 +3822,11 @@ func (m *RangeResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n1, err := m.Header.MarshalTo(data[i:])
+		n2, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n1
+		i += n2
 	}
 	if len(m.Kvs) > 0 {
 		for _, msg := range m.Kvs {
@@ -3558,20 +3868,30 @@ func (m *PutRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
+	if m.Header != nil {
 		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n3, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
+	}
+	if len(m.Key) > 0 {
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Key)))
 		i += copy(data[i:], m.Key)
 	}
 	if len(m.Value) > 0 {
-		data[i] = 0x12
+		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Value)))
 		i += copy(data[i:], m.Value)
 	}
 	if m.Lease != 0 {
-		data[i] = 0x18
+		data[i] = 0x20
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Lease))
 	}
@@ -3597,11 +3917,11 @@ func (m *PutResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n2, err := m.Header.MarshalTo(data[i:])
+		n4, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n2
+		i += n4
 	}
 	return i, nil
 }
@@ -3621,14 +3941,24 @@ func (m *DeleteRangeRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
+	if m.Header != nil {
 		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n5, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n5
+	}
+	if len(m.Key) > 0 {
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Key)))
 		i += copy(data[i:], m.Key)
 	}
 	if len(m.RangeEnd) > 0 {
-		data[i] = 0x12
+		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.RangeEnd)))
 		i += copy(data[i:], m.RangeEnd)
@@ -3655,11 +3985,11 @@ func (m *DeleteRangeResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n3, err := m.Header.MarshalTo(data[i:])
+		n6, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n3
+		i += n6
 	}
 	if m.Deleted != 0 {
 		data[i] = 0x10
@@ -3685,11 +4015,11 @@ func (m *RequestUnion) MarshalTo(data []byte) (int, error) {
 	var l int
 	_ = l
 	if m.Request != nil {
-		nn4, err := m.Request.MarshalTo(data[i:])
+		nn7, err := m.Request.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn4
+		i += nn7
 	}
 	return i, nil
 }
@@ -3700,11 +4030,11 @@ func (m *RequestUnion_RequestRange) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.RequestRange.Size()))
-		n5, err := m.RequestRange.MarshalTo(data[i:])
+		n8, err := m.RequestRange.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n5
+		i += n8
 	}
 	return i, nil
 }
@@ -3714,11 +4044,11 @@ func (m *RequestUnion_RequestPut) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.RequestPut.Size()))
-		n6, err := m.RequestPut.MarshalTo(data[i:])
+		n9, err := m.RequestPut.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n6
+		i += n9
 	}
 	return i, nil
 }
@@ -3728,11 +4058,11 @@ func (m *RequestUnion_RequestDeleteRange) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.RequestDeleteRange.Size()))
-		n7, err := m.RequestDeleteRange.MarshalTo(data[i:])
+		n10, err := m.RequestDeleteRange.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n7
+		i += n10
 	}
 	return i, nil
 }
@@ -3752,11 +4082,11 @@ func (m *ResponseUnion) MarshalTo(data []byte) (int, error) {
 	var l int
 	_ = l
 	if m.Response != nil {
-		nn8, err := m.Response.MarshalTo(data[i:])
+		nn11, err := m.Response.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn8
+		i += nn11
 	}
 	return i, nil
 }
@@ -3767,11 +4097,11 @@ func (m *ResponseUnion_ResponseRange) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.ResponseRange.Size()))
-		n9, err := m.ResponseRange.MarshalTo(data[i:])
+		n12, err := m.ResponseRange.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n9
+		i += n12
 	}
 	return i, nil
 }
@@ -3781,11 +4111,11 @@ func (m *ResponseUnion_ResponsePut) MarshalTo(data []byte) (int, error) {
 		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.ResponsePut.Size()))
-		n10, err := m.ResponsePut.MarshalTo(data[i:])
+		n13, err := m.ResponsePut.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n10
+		i += n13
 	}
 	return i, nil
 }
@@ -3795,11 +4125,11 @@ func (m *ResponseUnion_ResponseDeleteRange) MarshalTo(data []byte) (int, error) 
 		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.ResponseDeleteRange.Size()))
-		n11, err := m.ResponseDeleteRange.MarshalTo(data[i:])
+		n14, err := m.ResponseDeleteRange.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n11
+		i += n14
 	}
 	return i, nil
 }
@@ -3835,11 +4165,11 @@ func (m *Compare) MarshalTo(data []byte) (int, error) {
 		i += copy(data[i:], m.Key)
 	}
 	if m.TargetUnion != nil {
-		nn12, err := m.TargetUnion.MarshalTo(data[i:])
+		nn15, err := m.TargetUnion.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn12
+		i += nn15
 	}
 	return i, nil
 }
@@ -3890,9 +4220,19 @@ func (m *TxnRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n16, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n16
+	}
 	if len(m.Compare) > 0 {
 		for _, msg := range m.Compare {
-			data[i] = 0xa
+			data[i] = 0x12
 			i++
 			i = encodeVarintRpc(data, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(data[i:])
@@ -3904,7 +4244,7 @@ func (m *TxnRequest) MarshalTo(data []byte) (int, error) {
 	}
 	if len(m.Success) > 0 {
 		for _, msg := range m.Success {
-			data[i] = 0x12
+			data[i] = 0x1a
 			i++
 			i = encodeVarintRpc(data, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(data[i:])
@@ -3916,7 +4256,7 @@ func (m *TxnRequest) MarshalTo(data []byte) (int, error) {
 	}
 	if len(m.Failure) > 0 {
 		for _, msg := range m.Failure {
-			data[i] = 0x1a
+			data[i] = 0x22
 			i++
 			i = encodeVarintRpc(data, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(data[i:])
@@ -3948,11 +4288,11 @@ func (m *TxnResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n13, err := m.Header.MarshalTo(data[i:])
+		n17, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n13
+		i += n17
 	}
 	if m.Succeeded {
 		data[i] = 0x10
@@ -3994,13 +4334,23 @@ func (m *CompactionRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n18, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n18
+	}
 	if m.Revision != 0 {
-		data[i] = 0x8
+		data[i] = 0x10
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Revision))
 	}
 	if m.Physical {
-		data[i] = 0x10
+		data[i] = 0x18
 		i++
 		if m.Physical {
 			data[i] = 1
@@ -4031,11 +4381,11 @@ func (m *CompactionResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n14, err := m.Header.MarshalTo(data[i:])
+		n19, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n14
+		i += n19
 	}
 	return i, nil
 }
@@ -4055,6 +4405,16 @@ func (m *HashRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n20, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n20
+	}
 	return i, nil
 }
 
@@ -4077,11 +4437,11 @@ func (m *HashResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n15, err := m.Header.MarshalTo(data[i:])
+		n21, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n15
+		i += n21
 	}
 	if m.Hash != 0 {
 		data[i] = 0x10
@@ -4106,6 +4466,16 @@ func (m *SnapshotRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n22, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n22
+	}
 	return i, nil
 }
 
@@ -4128,11 +4498,11 @@ func (m *SnapshotResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n16, err := m.Header.MarshalTo(data[i:])
+		n23, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n16
+		i += n23
 	}
 	if m.RemainingBytes != 0 {
 		data[i] = 0x10
@@ -4163,12 +4533,22 @@ func (m *WatchRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.RequestUnion != nil {
-		nn17, err := m.RequestUnion.MarshalTo(data[i:])
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n24, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += nn17
+		i += n24
+	}
+	if m.RequestUnion != nil {
+		nn25, err := m.RequestUnion.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += nn25
 	}
 	return i, nil
 }
@@ -4176,28 +4556,28 @@ func (m *WatchRequest) MarshalTo(data []byte) (int, error) {
 func (m *WatchRequest_CreateRequest) MarshalTo(data []byte) (int, error) {
 	i := 0
 	if m.CreateRequest != nil {
-		data[i] = 0xa
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.CreateRequest.Size()))
-		n18, err := m.CreateRequest.MarshalTo(data[i:])
+		n26, err := m.CreateRequest.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n18
+		i += n26
 	}
 	return i, nil
 }
 func (m *WatchRequest_CancelRequest) MarshalTo(data []byte) (int, error) {
 	i := 0
 	if m.CancelRequest != nil {
-		data[i] = 0x12
+		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.CancelRequest.Size()))
-		n19, err := m.CancelRequest.MarshalTo(data[i:])
+		n27, err := m.CancelRequest.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n19
+		i += n27
 	}
 	return i, nil
 }
@@ -4216,25 +4596,35 @@ func (m *WatchCreateRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Key) > 0 {
+	if m.Header != nil {
 		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n28, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n28
+	}
+	if len(m.Key) > 0 {
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Key)))
 		i += copy(data[i:], m.Key)
 	}
 	if len(m.RangeEnd) > 0 {
-		data[i] = 0x12
+		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.RangeEnd)))
 		i += copy(data[i:], m.RangeEnd)
 	}
 	if m.StartRevision != 0 {
-		data[i] = 0x18
+		data[i] = 0x20
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.StartRevision))
 	}
 	if m.ProgressNotify {
-		data[i] = 0x20
+		data[i] = 0x28
 		i++
 		if m.ProgressNotify {
 			data[i] = 1
@@ -4261,8 +4651,18 @@ func (m *WatchCancelRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n29, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n29
+	}
 	if m.WatchId != 0 {
-		data[i] = 0x8
+		data[i] = 0x10
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.WatchId))
 	}
@@ -4288,11 +4688,11 @@ func (m *WatchResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n20, err := m.Header.MarshalTo(data[i:])
+		n30, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n20
+		i += n30
 	}
 	if m.WatchId != 0 {
 		data[i] = 0x10
@@ -4354,13 +4754,23 @@ func (m *LeaseGrantRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n31, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n31
+	}
 	if m.TTL != 0 {
-		data[i] = 0x8
+		data[i] = 0x10
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.TTL))
 	}
 	if m.ID != 0 {
-		data[i] = 0x10
+		data[i] = 0x18
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.ID))
 	}
@@ -4386,11 +4796,11 @@ func (m *LeaseGrantResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n21, err := m.Header.MarshalTo(data[i:])
+		n32, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n21
+		i += n32
 	}
 	if m.ID != 0 {
 		data[i] = 0x10
@@ -4426,8 +4836,18 @@ func (m *LeaseRevokeRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n33, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n33
+	}
 	if m.ID != 0 {
-		data[i] = 0x8
+		data[i] = 0x10
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.ID))
 	}
@@ -4453,11 +4873,11 @@ func (m *LeaseRevokeResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n22, err := m.Header.MarshalTo(data[i:])
+		n34, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n22
+		i += n34
 	}
 	return i, nil
 }
@@ -4477,8 +4897,18 @@ func (m *LeaseKeepAliveRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n35, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n35
+	}
 	if m.ID != 0 {
-		data[i] = 0x8
+		data[i] = 0x10
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.ID))
 	}
@@ -4504,11 +4934,11 @@ func (m *LeaseKeepAliveResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n23, err := m.Header.MarshalTo(data[i:])
+		n36, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n23
+		i += n36
 	}
 	if m.ID != 0 {
 		data[i] = 0x10
@@ -4597,9 +5027,19 @@ func (m *MemberAddRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n37, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n37
+	}
 	if len(m.PeerURLs) > 0 {
 		for _, s := range m.PeerURLs {
-			data[i] = 0xa
+			data[i] = 0x12
 			i++
 			l = len(s)
 			for l >= 1<<7 {
@@ -4634,21 +5074,21 @@ func (m *MemberAddResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n24, err := m.Header.MarshalTo(data[i:])
+		n38, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n24
+		i += n38
 	}
 	if m.Member != nil {
 		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Member.Size()))
-		n25, err := m.Member.MarshalTo(data[i:])
+		n39, err := m.Member.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n25
+		i += n39
 	}
 	return i, nil
 }
@@ -4668,8 +5108,18 @@ func (m *MemberRemoveRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n40, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n40
+	}
 	if m.ID != 0 {
-		data[i] = 0x8
+		data[i] = 0x10
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.ID))
 	}
@@ -4695,11 +5145,11 @@ func (m *MemberRemoveResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n26, err := m.Header.MarshalTo(data[i:])
+		n41, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n26
+		i += n41
 	}
 	return i, nil
 }
@@ -4719,14 +5169,24 @@ func (m *MemberUpdateRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n42, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n42
+	}
 	if m.ID != 0 {
-		data[i] = 0x8
+		data[i] = 0x10
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.ID))
 	}
 	if len(m.PeerURLs) > 0 {
 		for _, s := range m.PeerURLs {
-			data[i] = 0x12
+			data[i] = 0x1a
 			i++
 			l = len(s)
 			for l >= 1<<7 {
@@ -4761,11 +5221,11 @@ func (m *MemberUpdateResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n27, err := m.Header.MarshalTo(data[i:])
+		n43, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n27
+		i += n43
 	}
 	return i, nil
 }
@@ -4785,6 +5245,16 @@ func (m *MemberListRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n44, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n44
+	}
 	return i, nil
 }
 
@@ -4807,11 +5277,11 @@ func (m *MemberListResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n28, err := m.Header.MarshalTo(data[i:])
+		n45, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n28
+		i += n45
 	}
 	if len(m.Members) > 0 {
 		for _, msg := range m.Members {
@@ -4843,6 +5313,16 @@ func (m *DefragmentRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n46, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n46
+	}
 	return i, nil
 }
 
@@ -4865,11 +5345,11 @@ func (m *DefragmentResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n29, err := m.Header.MarshalTo(data[i:])
+		n47, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n29
+		i += n47
 	}
 	return i, nil
 }
@@ -4889,18 +5369,28 @@ func (m *AlarmRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n48, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n48
+	}
 	if m.Action != 0 {
-		data[i] = 0x8
+		data[i] = 0x10
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Action))
 	}
 	if m.MemberID != 0 {
-		data[i] = 0x10
+		data[i] = 0x18
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.MemberID))
 	}
 	if m.Alarm != 0 {
-		data[i] = 0x18
+		data[i] = 0x20
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Alarm))
 	}
@@ -4954,11 +5444,11 @@ func (m *AlarmResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n30, err := m.Header.MarshalTo(data[i:])
+		n49, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n30
+		i += n49
 	}
 	if len(m.Alarms) > 0 {
 		for _, msg := range m.Alarms {
@@ -4990,6 +5480,16 @@ func (m *StatusRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n50, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n50
+	}
 	return i, nil
 }
 
@@ -5012,11 +5512,11 @@ func (m *StatusResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n31, err := m.Header.MarshalTo(data[i:])
+		n51, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n31
+		i += n51
 	}
 	if len(m.Version) > 0 {
 		data[i] = 0x12
@@ -5062,6 +5562,16 @@ func (m *AuthEnableRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n52, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n52
+	}
 	return i, nil
 }
 
@@ -5080,6 +5590,16 @@ func (m *AuthDisableRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n53, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n53
+	}
 	return i, nil
 }
 
@@ -5128,14 +5648,24 @@ func (m *AuthUserAddRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Name) > 0 {
+	if m.Header != nil {
 		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n54, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n54
+	}
+	if len(m.Name) > 0 {
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Name)))
 		i += copy(data[i:], m.Name)
 	}
 	if len(m.Password) > 0 {
-		data[i] = 0x12
+		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Password)))
 		i += copy(data[i:], m.Password)
@@ -5158,6 +5688,16 @@ func (m *AuthUserGetRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n55, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n55
+	}
 	return i, nil
 }
 
@@ -5176,8 +5716,18 @@ func (m *AuthUserDeleteRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Name) > 0 {
+	if m.Header != nil {
 		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n56, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n56
+	}
+	if len(m.Name) > 0 {
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Name)))
 		i += copy(data[i:], m.Name)
@@ -5200,14 +5750,24 @@ func (m *AuthUserChangePasswordRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Name) > 0 {
+	if m.Header != nil {
 		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n57, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n57
+	}
+	if len(m.Name) > 0 {
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Name)))
 		i += copy(data[i:], m.Name)
 	}
 	if len(m.Password) > 0 {
-		data[i] = 0x12
+		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Password)))
 		i += copy(data[i:], m.Password)
@@ -5230,14 +5790,24 @@ func (m *AuthUserGrantRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.User) > 0 {
+	if m.Header != nil {
 		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n58, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n58
+	}
+	if len(m.User) > 0 {
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.User)))
 		i += copy(data[i:], m.User)
 	}
 	if len(m.Role) > 0 {
-		data[i] = 0x12
+		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Role)))
 		i += copy(data[i:], m.Role)
@@ -5260,6 +5830,16 @@ func (m *AuthUserRevokeRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n59, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n59
+	}
 	return i, nil
 }
 
@@ -5278,8 +5858,18 @@ func (m *AuthRoleAddRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Name) > 0 {
+	if m.Header != nil {
 		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n60, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n60
+	}
+	if len(m.Name) > 0 {
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Name)))
 		i += copy(data[i:], m.Name)
@@ -5302,6 +5892,16 @@ func (m *AuthRoleGetRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n61, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n61
+	}
 	return i, nil
 }
 
@@ -5320,6 +5920,16 @@ func (m *AuthRoleDeleteRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n62, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n62
+	}
 	return i, nil
 }
 
@@ -5338,21 +5948,31 @@ func (m *AuthRoleGrantRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.Name) > 0 {
+	if m.Header != nil {
 		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n63, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n63
+	}
+	if len(m.Name) > 0 {
+		data[i] = 0x12
 		i++
 		i = encodeVarintRpc(data, i, uint64(len(m.Name)))
 		i += copy(data[i:], m.Name)
 	}
 	if m.Perm != nil {
-		data[i] = 0x12
+		data[i] = 0x1a
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Perm.Size()))
-		n32, err := m.Perm.MarshalTo(data[i:])
+		n64, err := m.Perm.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n32
+		i += n64
 	}
 	return i, nil
 }
@@ -5372,6 +5992,16 @@ func (m *AuthRoleRevokeRequest) MarshalTo(data []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Header != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
+		n65, err := m.Header.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n65
+	}
 	return i, nil
 }
 
@@ -5394,11 +6024,11 @@ func (m *AuthEnableResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n33, err := m.Header.MarshalTo(data[i:])
+		n66, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n33
+		i += n66
 	}
 	return i, nil
 }
@@ -5422,11 +6052,11 @@ func (m *AuthDisableResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n34, err := m.Header.MarshalTo(data[i:])
+		n67, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n34
+		i += n67
 	}
 	return i, nil
 }
@@ -5450,11 +6080,11 @@ func (m *AuthenticateResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n35, err := m.Header.MarshalTo(data[i:])
+		n68, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n35
+		i += n68
 	}
 	if len(m.Token) > 0 {
 		data[i] = 0x12
@@ -5484,11 +6114,11 @@ func (m *AuthUserAddResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n36, err := m.Header.MarshalTo(data[i:])
+		n69, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n36
+		i += n69
 	}
 	return i, nil
 }
@@ -5512,11 +6142,11 @@ func (m *AuthUserGetResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n37, err := m.Header.MarshalTo(data[i:])
+		n70, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n37
+		i += n70
 	}
 	return i, nil
 }
@@ -5540,11 +6170,11 @@ func (m *AuthUserDeleteResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n38, err := m.Header.MarshalTo(data[i:])
+		n71, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n38
+		i += n71
 	}
 	return i, nil
 }
@@ -5568,11 +6198,11 @@ func (m *AuthUserChangePasswordResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n39, err := m.Header.MarshalTo(data[i:])
+		n72, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n39
+		i += n72
 	}
 	return i, nil
 }
@@ -5596,11 +6226,11 @@ func (m *AuthUserGrantResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n40, err := m.Header.MarshalTo(data[i:])
+		n73, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n40
+		i += n73
 	}
 	return i, nil
 }
@@ -5624,11 +6254,11 @@ func (m *AuthUserRevokeResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n41, err := m.Header.MarshalTo(data[i:])
+		n74, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n41
+		i += n74
 	}
 	return i, nil
 }
@@ -5652,11 +6282,11 @@ func (m *AuthRoleAddResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n42, err := m.Header.MarshalTo(data[i:])
+		n75, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n42
+		i += n75
 	}
 	return i, nil
 }
@@ -5680,11 +6310,11 @@ func (m *AuthRoleGetResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n43, err := m.Header.MarshalTo(data[i:])
+		n76, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n43
+		i += n76
 	}
 	return i, nil
 }
@@ -5708,11 +6338,11 @@ func (m *AuthRoleDeleteResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n44, err := m.Header.MarshalTo(data[i:])
+		n77, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n44
+		i += n77
 	}
 	return i, nil
 }
@@ -5736,11 +6366,11 @@ func (m *AuthRoleGrantResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n45, err := m.Header.MarshalTo(data[i:])
+		n78, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n45
+		i += n78
 	}
 	return i, nil
 }
@@ -5764,11 +6394,11 @@ func (m *AuthRoleRevokeResponse) MarshalTo(data []byte) (int, error) {
 		data[i] = 0xa
 		i++
 		i = encodeVarintRpc(data, i, uint64(m.Header.Size()))
-		n46, err := m.Header.MarshalTo(data[i:])
+		n79, err := m.Header.MarshalTo(data[i:])
 		if err != nil {
 			return 0, err
 		}
-		i += n46
+		i += n79
 	}
 	return i, nil
 }
@@ -5800,6 +6430,16 @@ func encodeVarintRpc(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	return offset + 1
 }
+func (m *RequestHeader) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Username)
+	if l > 0 {
+		n += 1 + l + sovRpc(uint64(l))
+	}
+	return n
+}
+
 func (m *ResponseHeader) Size() (n int) {
 	var l int
 	_ = l
@@ -5821,6 +6461,10 @@ func (m *ResponseHeader) Size() (n int) {
 func (m *RangeRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovRpc(uint64(l))
@@ -5869,6 +6513,10 @@ func (m *RangeResponse) Size() (n int) {
 func (m *PutRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovRpc(uint64(l))
@@ -5896,6 +6544,10 @@ func (m *PutResponse) Size() (n int) {
 func (m *DeleteRangeRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovRpc(uint64(l))
@@ -6041,6 +6693,10 @@ func (m *Compare_Value) Size() (n int) {
 func (m *TxnRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if len(m.Compare) > 0 {
 		for _, e := range m.Compare {
 			l = e.Size()
@@ -6084,6 +6740,10 @@ func (m *TxnResponse) Size() (n int) {
 func (m *CompactionRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if m.Revision != 0 {
 		n += 1 + sovRpc(uint64(m.Revision))
 	}
@@ -6106,6 +6766,10 @@ func (m *CompactionResponse) Size() (n int) {
 func (m *HashRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
@@ -6125,6 +6789,10 @@ func (m *HashResponse) Size() (n int) {
 func (m *SnapshotRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
@@ -6148,6 +6816,10 @@ func (m *SnapshotResponse) Size() (n int) {
 func (m *WatchRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if m.RequestUnion != nil {
 		n += m.RequestUnion.Size()
 	}
@@ -6175,6 +6847,10 @@ func (m *WatchRequest_CancelRequest) Size() (n int) {
 func (m *WatchCreateRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	l = len(m.Key)
 	if l > 0 {
 		n += 1 + l + sovRpc(uint64(l))
@@ -6195,6 +6871,10 @@ func (m *WatchCreateRequest) Size() (n int) {
 func (m *WatchCancelRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if m.WatchId != 0 {
 		n += 1 + sovRpc(uint64(m.WatchId))
 	}
@@ -6232,6 +6912,10 @@ func (m *WatchResponse) Size() (n int) {
 func (m *LeaseGrantRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if m.TTL != 0 {
 		n += 1 + sovRpc(uint64(m.TTL))
 	}
@@ -6264,6 +6948,10 @@ func (m *LeaseGrantResponse) Size() (n int) {
 func (m *LeaseRevokeRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if m.ID != 0 {
 		n += 1 + sovRpc(uint64(m.ID))
 	}
@@ -6283,6 +6971,10 @@ func (m *LeaseRevokeResponse) Size() (n int) {
 func (m *LeaseKeepAliveRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if m.ID != 0 {
 		n += 1 + sovRpc(uint64(m.ID))
 	}
@@ -6333,6 +7025,10 @@ func (m *Member) Size() (n int) {
 func (m *MemberAddRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if len(m.PeerURLs) > 0 {
 		for _, s := range m.PeerURLs {
 			l = len(s)
@@ -6359,6 +7055,10 @@ func (m *MemberAddResponse) Size() (n int) {
 func (m *MemberRemoveRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if m.ID != 0 {
 		n += 1 + sovRpc(uint64(m.ID))
 	}
@@ -6378,6 +7078,10 @@ func (m *MemberRemoveResponse) Size() (n int) {
 func (m *MemberUpdateRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if m.ID != 0 {
 		n += 1 + sovRpc(uint64(m.ID))
 	}
@@ -6403,6 +7107,10 @@ func (m *MemberUpdateResponse) Size() (n int) {
 func (m *MemberListRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
@@ -6425,6 +7133,10 @@ func (m *MemberListResponse) Size() (n int) {
 func (m *DefragmentRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
@@ -6441,6 +7153,10 @@ func (m *DefragmentResponse) Size() (n int) {
 func (m *AlarmRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	if m.Action != 0 {
 		n += 1 + sovRpc(uint64(m.Action))
 	}
@@ -6484,6 +7200,10 @@ func (m *AlarmResponse) Size() (n int) {
 func (m *StatusRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
@@ -6516,12 +7236,20 @@ func (m *StatusResponse) Size() (n int) {
 func (m *AuthEnableRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
 func (m *AuthDisableRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
@@ -6542,6 +7270,10 @@ func (m *AuthenticateRequest) Size() (n int) {
 func (m *AuthUserAddRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + sovRpc(uint64(l))
@@ -6556,12 +7288,20 @@ func (m *AuthUserAddRequest) Size() (n int) {
 func (m *AuthUserGetRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
 func (m *AuthUserDeleteRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + sovRpc(uint64(l))
@@ -6572,6 +7312,10 @@ func (m *AuthUserDeleteRequest) Size() (n int) {
 func (m *AuthUserChangePasswordRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + sovRpc(uint64(l))
@@ -6586,6 +7330,10 @@ func (m *AuthUserChangePasswordRequest) Size() (n int) {
 func (m *AuthUserGrantRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	l = len(m.User)
 	if l > 0 {
 		n += 1 + l + sovRpc(uint64(l))
@@ -6600,12 +7348,20 @@ func (m *AuthUserGrantRequest) Size() (n int) {
 func (m *AuthUserRevokeRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
 func (m *AuthRoleAddRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + sovRpc(uint64(l))
@@ -6616,18 +7372,30 @@ func (m *AuthRoleAddRequest) Size() (n int) {
 func (m *AuthRoleGetRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
 func (m *AuthRoleDeleteRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
 func (m *AuthRoleGrantRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	l = len(m.Name)
 	if l > 0 {
 		n += 1 + l + sovRpc(uint64(l))
@@ -6642,6 +7410,10 @@ func (m *AuthRoleGrantRequest) Size() (n int) {
 func (m *AuthRoleRevokeRequest) Size() (n int) {
 	var l int
 	_ = l
+	if m.Header != nil {
+		l = m.Header.Size()
+		n += 1 + l + sovRpc(uint64(l))
+	}
 	return n
 }
 
@@ -6802,6 +7574,85 @@ func sovRpc(x uint64) (n int) {
 func sozRpc(x uint64) (n int) {
 	return sovRpc(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
+func (m *RequestHeader) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowRpc
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RequestHeader: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RequestHeader: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Username", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Username = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipRpc(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthRpc
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *ResponseHeader) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
@@ -6959,6 +7810,39 @@ func (m *RangeRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
 			var byteLen int
@@ -6988,7 +7872,7 @@ func (m *RangeRequest) Unmarshal(data []byte) error {
 				m.Key = []byte{}
 			}
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RangeEnd", wireType)
 			}
@@ -7019,7 +7903,7 @@ func (m *RangeRequest) Unmarshal(data []byte) error {
 				m.RangeEnd = []byte{}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Limit", wireType)
 			}
@@ -7038,7 +7922,7 @@ func (m *RangeRequest) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 4:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Revision", wireType)
 			}
@@ -7057,7 +7941,7 @@ func (m *RangeRequest) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 5:
+		case 6:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SortOrder", wireType)
 			}
@@ -7076,7 +7960,7 @@ func (m *RangeRequest) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 6:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SortTarget", wireType)
 			}
@@ -7095,7 +7979,7 @@ func (m *RangeRequest) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 7:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Serializable", wireType)
 			}
@@ -7301,6 +8185,39 @@ func (m *PutRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
 			var byteLen int
@@ -7330,7 +8247,7 @@ func (m *PutRequest) Unmarshal(data []byte) error {
 				m.Key = []byte{}
 			}
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
 			}
@@ -7361,7 +8278,7 @@ func (m *PutRequest) Unmarshal(data []byte) error {
 				m.Value = []byte{}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Lease", wireType)
 			}
@@ -7515,6 +8432,39 @@ func (m *DeleteRangeRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
 			var byteLen int
@@ -7544,7 +8494,7 @@ func (m *DeleteRangeRequest) Unmarshal(data []byte) error {
 				m.Key = []byte{}
 			}
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RangeEnd", wireType)
 			}
@@ -8230,6 +9180,39 @@ func (m *TxnRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Compare", wireType)
 			}
 			var msglen int
@@ -8259,7 +9242,7 @@ func (m *TxnRequest) Unmarshal(data []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Success", wireType)
 			}
@@ -8290,7 +9273,7 @@ func (m *TxnRequest) Unmarshal(data []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Failure", wireType)
 			}
@@ -8506,6 +9489,39 @@ func (m *CompactionRequest) Unmarshal(data []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Revision", wireType)
 			}
@@ -8524,7 +9540,7 @@ func (m *CompactionRequest) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 2:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Physical", wireType)
 			}
@@ -8677,6 +9693,39 @@ func (m *HashRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: HashRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -8829,6 +9878,39 @@ func (m *SnapshotRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: SnapshotRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -9014,6 +10096,39 @@ func (m *WatchRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CreateRequest", wireType)
 			}
 			var msglen int
@@ -9044,7 +10159,7 @@ func (m *WatchRequest) Unmarshal(data []byte) error {
 			}
 			m.RequestUnion = &WatchRequest_CreateRequest{v}
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CancelRequest", wireType)
 			}
@@ -9128,6 +10243,39 @@ func (m *WatchCreateRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
 			var byteLen int
@@ -9157,7 +10305,7 @@ func (m *WatchCreateRequest) Unmarshal(data []byte) error {
 				m.Key = []byte{}
 			}
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RangeEnd", wireType)
 			}
@@ -9188,7 +10336,7 @@ func (m *WatchCreateRequest) Unmarshal(data []byte) error {
 				m.RangeEnd = []byte{}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StartRevision", wireType)
 			}
@@ -9207,7 +10355,7 @@ func (m *WatchCreateRequest) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 4:
+		case 5:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ProgressNotify", wireType)
 			}
@@ -9278,6 +10426,39 @@ func (m *WatchCancelRequest) Unmarshal(data []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WatchId", wireType)
 			}
@@ -9539,6 +10720,39 @@ func (m *LeaseGrantRequest) Unmarshal(data []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TTL", wireType)
 			}
@@ -9557,7 +10771,7 @@ func (m *LeaseGrantRequest) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 2:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
 			}
@@ -9777,6 +10991,39 @@ func (m *LeaseRevokeRequest) Unmarshal(data []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
 			}
@@ -9929,6 +11176,39 @@ func (m *LeaseKeepAliveRequest) Unmarshal(data []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
 			}
@@ -10276,6 +11556,39 @@ func (m *MemberAddRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PeerURLs", wireType)
 			}
 			var stringLen uint64
@@ -10470,6 +11783,39 @@ func (m *MemberRemoveRequest) Unmarshal(data []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
 			}
@@ -10622,6 +11968,39 @@ func (m *MemberUpdateRequest) Unmarshal(data []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
 			}
@@ -10640,7 +12019,7 @@ func (m *MemberUpdateRequest) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PeerURLs", wireType)
 			}
@@ -10802,6 +12181,39 @@ func (m *MemberListRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: MemberListRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -10966,6 +12378,39 @@ func (m *DefragmentRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: DefragmentRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -11100,6 +12545,39 @@ func (m *AlarmRequest) Unmarshal(data []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Action", wireType)
 			}
@@ -11118,7 +12596,7 @@ func (m *AlarmRequest) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 2:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MemberID", wireType)
 			}
@@ -11137,7 +12615,7 @@ func (m *AlarmRequest) Unmarshal(data []byte) error {
 					break
 				}
 			}
-		case 3:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Alarm", wireType)
 			}
@@ -11408,6 +12886,39 @@ func (m *StatusRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: StatusRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -11646,6 +13157,39 @@ func (m *AuthEnableRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: AuthEnableRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -11696,6 +13240,39 @@ func (m *AuthDisableRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: AuthDisableRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -11856,6 +13433,39 @@ func (m *AuthUserAddRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
 			}
 			var stringLen uint64
@@ -11883,7 +13493,7 @@ func (m *AuthUserAddRequest) Unmarshal(data []byte) error {
 			}
 			m.Name = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Password", wireType)
 			}
@@ -11962,6 +13572,39 @@ func (m *AuthUserGetRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: AuthUserGetRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -12013,6 +13656,39 @@ func (m *AuthUserDeleteRequest) Unmarshal(data []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
 			}
@@ -12093,6 +13769,39 @@ func (m *AuthUserChangePasswordRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
 			}
 			var stringLen uint64
@@ -12120,7 +13829,7 @@ func (m *AuthUserChangePasswordRequest) Unmarshal(data []byte) error {
 			}
 			m.Name = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Password", wireType)
 			}
@@ -12201,6 +13910,39 @@ func (m *AuthUserGrantRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field User", wireType)
 			}
 			var stringLen uint64
@@ -12228,7 +13970,7 @@ func (m *AuthUserGrantRequest) Unmarshal(data []byte) error {
 			}
 			m.User = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Role", wireType)
 			}
@@ -12307,6 +14049,39 @@ func (m *AuthUserRevokeRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: AuthUserRevokeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -12358,6 +14133,39 @@ func (m *AuthRoleAddRequest) Unmarshal(data []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
 			}
@@ -12436,6 +14244,39 @@ func (m *AuthRoleGetRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: AuthRoleGetRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -12486,6 +14327,39 @@ func (m *AuthRoleDeleteRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: AuthRoleDeleteRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -12538,6 +14412,39 @@ func (m *AuthRoleGrantRequest) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
 			}
 			var stringLen uint64
@@ -12565,7 +14472,7 @@ func (m *AuthRoleGrantRequest) Unmarshal(data []byte) error {
 			}
 			m.Name = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Perm", wireType)
 			}
@@ -12648,6 +14555,39 @@ func (m *AuthRoleRevokeRequest) Unmarshal(data []byte) error {
 			return fmt.Errorf("proto: AuthRoleRevokeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowRpc
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthRpc
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Header == nil {
+				m.Header = &RequestHeader{}
+			}
+			if err := m.Header.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipRpc(data[iNdEx:])
@@ -13966,166 +15906,171 @@ var (
 )
 
 var fileDescriptorRpc = []byte{
-	// 2576 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xb4, 0x5a, 0xcd, 0x72, 0x1b, 0xc7,
-	0x11, 0x26, 0x7e, 0x08, 0x10, 0x0d, 0x10, 0xa2, 0x86, 0x94, 0x4c, 0x41, 0xb6, 0x2c, 0xaf, 0x24,
-	0x5b, 0x89, 0x1d, 0x2a, 0x66, 0x9c, 0x43, 0x2a, 0x2e, 0xa5, 0x40, 0x02, 0x96, 0x68, 0x52, 0xa4,
-	0xbc, 0x04, 0xa9, 0xf8, 0xc4, 0x5a, 0x02, 0x23, 0x12, 0x25, 0xfc, 0x79, 0x77, 0x41, 0x89, 0xaa,
-	0xca, 0x25, 0x55, 0x79, 0x02, 0xe7, 0x94, 0xca, 0x0b, 0xe4, 0x01, 0xf2, 0x0e, 0xa9, 0x5c, 0x92,
-	0x27, 0x48, 0x52, 0x39, 0xa5, 0x72, 0xc9, 0x3d, 0xb9, 0xa4, 0xe7, 0x77, 0x67, 0x07, 0xbb, 0x94,
-	0x9c, 0x65, 0x0e, 0x22, 0x77, 0x7a, 0xba, 0xbf, 0xe9, 0xee, 0xe9, 0xe9, 0xe9, 0x1e, 0x0a, 0x2a,
-	0xfe, 0xa4, 0xbb, 0x36, 0xf1, 0xc7, 0xe1, 0x98, 0xd4, 0x68, 0xd8, 0xed, 0x05, 0xd4, 0x3f, 0xa3,
-	0xfe, 0xe4, 0xb8, 0xb1, 0x72, 0x32, 0x3e, 0x19, 0xf3, 0x89, 0x07, 0xec, 0x4b, 0xf0, 0x34, 0x6e,
-	0x30, 0x9e, 0x07, 0xc3, 0xb3, 0x6e, 0x97, 0xff, 0x98, 0x1c, 0x3f, 0x78, 0x71, 0x26, 0xa7, 0x6e,
-	0xf2, 0x29, 0x6f, 0x1a, 0x9e, 0xf2, 0x1f, 0x38, 0xc5, 0x7e, 0x89, 0x49, 0xe7, 0x57, 0x39, 0xa8,
-	0xbb, 0x34, 0x98, 0x8c, 0x47, 0x01, 0x7d, 0x4c, 0xbd, 0x1e, 0xf5, 0xc9, 0x7b, 0x00, 0xdd, 0xc1,
-	0x34, 0x08, 0xa9, 0x7f, 0xd4, 0xef, 0xad, 0xe6, 0x6e, 0xe7, 0xee, 0x17, 0xdd, 0x8a, 0xa4, 0x6c,
-	0xf5, 0xc8, 0x4d, 0xa8, 0x0c, 0xe9, 0xf0, 0x58, 0xcc, 0xe6, 0xf9, 0xec, 0x82, 0x20, 0xe0, 0x64,
-	0x03, 0x16, 0x7c, 0x7a, 0xd6, 0x0f, 0xfa, 0xe3, 0xd1, 0x6a, 0x01, 0xe7, 0x0a, 0xae, 0x1e, 0x33,
-	0x41, 0xdf, 0x7b, 0x1e, 0x1e, 0x21, 0xcc, 0x70, 0xb5, 0x28, 0x04, 0x19, 0xa1, 0x83, 0x63, 0xe7,
-	0xd7, 0x05, 0xa8, 0xb9, 0xde, 0xe8, 0x84, 0xba, 0xf4, 0x9b, 0x29, 0x0d, 0x42, 0xb2, 0x04, 0x85,
-	0x17, 0xf4, 0x9c, 0x2f, 0x5f, 0x73, 0xd9, 0xa7, 0x90, 0x47, 0x8e, 0x23, 0x3a, 0x12, 0x0b, 0xd7,
-	0x98, 0x3c, 0x12, 0xda, 0xa3, 0x1e, 0x59, 0x81, 0xf9, 0x41, 0x7f, 0xd8, 0x0f, 0xe5, 0xaa, 0x62,
-	0x10, 0x53, 0xa7, 0x68, 0xa9, 0xb3, 0x09, 0x10, 0x8c, 0xfd, 0xf0, 0x68, 0xec, 0xa3, 0xd1, 0xab,
-	0xf3, 0x38, 0x5b, 0x5f, 0xbf, 0xbb, 0x66, 0xba, 0x7a, 0xcd, 0x54, 0x68, 0x6d, 0x1f, 0x99, 0xf7,
-	0x18, 0xaf, 0x5b, 0x09, 0xd4, 0x27, 0xf9, 0x02, 0xaa, 0x1c, 0x24, 0xf4, 0xfc, 0x13, 0x1a, 0xae,
-	0x96, 0x38, 0xca, 0xbd, 0x37, 0xa0, 0x74, 0x38, 0xb3, 0xcb, 0x97, 0x17, 0xdf, 0xc4, 0x81, 0x1a,
-	0xf2, 0xf7, 0xbd, 0x41, 0xff, 0xb5, 0x77, 0x3c, 0xa0, 0xab, 0x65, 0x04, 0x5a, 0x70, 0x63, 0x34,
-	0x67, 0x0d, 0x2a, 0x5a, 0x07, 0xb2, 0x00, 0xc5, 0xdd, 0xbd, 0xdd, 0xf6, 0xd2, 0x1c, 0x01, 0x28,
-	0x35, 0xf7, 0x37, 0xdb, 0xbb, 0xad, 0xa5, 0x1c, 0xa9, 0x42, 0xb9, 0xd5, 0x16, 0x83, 0xbc, 0xb3,
-	0x01, 0x10, 0xad, 0x46, 0xca, 0x50, 0xd8, 0x6e, 0x7f, 0x8d, 0xfc, 0xc8, 0x73, 0xd8, 0x76, 0xf7,
-	0xb7, 0xf6, 0x76, 0x51, 0x00, 0x85, 0x37, 0xdd, 0x76, 0xb3, 0xd3, 0x5e, 0xca, 0x33, 0x8e, 0x27,
-	0x7b, 0xad, 0xa5, 0x02, 0xa9, 0xc0, 0xfc, 0x61, 0x73, 0xe7, 0xa0, 0xbd, 0x54, 0x74, 0x7e, 0x01,
-	0x8b, 0x52, 0x7d, 0x11, 0x22, 0xe4, 0x33, 0x28, 0x9d, 0xf2, 0x30, 0xe1, 0x3b, 0x53, 0x5d, 0x7f,
-	0xd7, 0xb2, 0x35, 0x16, 0x4a, 0xae, 0xe4, 0x45, 0xf3, 0x0a, 0x2f, 0xce, 0x02, 0xdc, 0xb4, 0x02,
-	0x8a, 0x2c, 0xad, 0x89, 0x08, 0x5d, 0xdb, 0xa6, 0xe7, 0x87, 0xde, 0x60, 0x4a, 0x5d, 0x36, 0x49,
-	0x08, 0x14, 0x87, 0x63, 0x9f, 0xf2, 0x0d, 0x5c, 0x70, 0xf9, 0xb7, 0xf3, 0x25, 0xc0, 0xd3, 0x69,
-	0x98, 0x1e, 0x12, 0xb8, 0xeb, 0x67, 0x0c, 0x41, 0x86, 0x83, 0x18, 0xf0, 0x58, 0xa0, 0x5e, 0x40,
-	0x75, 0x2c, 0xb0, 0x81, 0xb3, 0x09, 0x55, 0x8e, 0x95, 0xc5, 0x10, 0x04, 0x21, 0x2d, 0x3a, 0xa0,
-	0x21, 0xcd, 0x10, 0xab, 0x0e, 0x85, 0xe5, 0x18, 0x48, 0x26, 0xd7, 0xae, 0x42, 0xb9, 0xc7, 0xc1,
-	0xc4, 0x3a, 0x05, 0x57, 0x0d, 0x9d, 0x7f, 0xe5, 0xf0, 0x48, 0x09, 0x0d, 0x0f, 0x46, 0x2c, 0xe2,
-	0x9b, 0xb0, 0xe8, 0x8b, 0xf1, 0x11, 0xd7, 0x45, 0xae, 0xd3, 0x48, 0x0f, 0xd7, 0xc7, 0x73, 0x6e,
-	0x4d, 0x8a, 0x70, 0x32, 0xf9, 0x29, 0x54, 0x15, 0xc4, 0x64, 0x1a, 0xf2, 0x15, 0xab, 0xeb, 0xab,
-	0x71, 0x80, 0x68, 0xc7, 0x50, 0x1c, 0x24, 0x3b, 0x12, 0x49, 0x07, 0x56, 0x94, 0xb0, 0xd0, 0x51,
-	0xaa, 0x51, 0xe0, 0x28, 0xb7, 0xe3, 0x28, 0xb3, 0x6e, 0x46, 0x34, 0x22, 0xe5, 0x8d, 0xc9, 0x8d,
-	0x0a, 0x94, 0x25, 0xd5, 0xf9, 0x77, 0x0e, 0xc3, 0x55, 0xba, 0x49, 0x98, 0xdc, 0x82, 0xba, 0x2f,
-	0x09, 0x31, 0x9b, 0x6f, 0x26, 0xda, 0x2c, 0x1d, 0x3c, 0xe7, 0x2e, 0x2a, 0x21, 0x61, 0xf5, 0x43,
-	0xa8, 0x69, 0x94, 0xc8, 0xec, 0x1b, 0x09, 0x66, 0x6b, 0x84, 0xaa, 0x12, 0x60, 0x86, 0x3f, 0x83,
-	0x6b, 0x5a, 0x3e, 0xc1, 0xf2, 0x0f, 0x2e, 0xb0, 0x5c, 0x03, 0x2e, 0x2b, 0x04, 0xd3, 0x76, 0x60,
-	0xf9, 0x4d, 0x90, 0x9d, 0xdf, 0x14, 0xa0, 0xbc, 0x39, 0x1e, 0x4e, 0x3c, 0x9f, 0x6d, 0x53, 0x09,
-	0xe9, 0xd3, 0x41, 0xc8, 0xcd, 0xad, 0xaf, 0xdf, 0x89, 0xaf, 0x20, 0xd9, 0xd4, 0x6f, 0x97, 0xb3,
-	0xba, 0x52, 0x84, 0x09, 0xcb, 0x74, 0x96, 0x7f, 0x0b, 0x61, 0x99, 0xcc, 0xa4, 0x88, 0x3a, 0x0a,
-	0x85, 0xe8, 0x28, 0x34, 0xa0, 0x8c, 0x82, 0x51, 0x0a, 0x46, 0x5b, 0x14, 0x81, 0x7c, 0x0f, 0xae,
-	0x74, 0x7d, 0xea, 0x31, 0x7f, 0xa8, 0x34, 0x3d, 0x2f, 0x79, 0xea, 0x62, 0xc2, 0x55, 0xe9, 0xfa,
-	0x0e, 0xd4, 0x86, 0xe3, 0x5e, 0xc4, 0x57, 0x92, 0x7c, 0x55, 0xa4, 0x6a, 0xa6, 0xeb, 0x2a, 0x1f,
-	0xb0, 0xfc, 0x59, 0xc3, 0x59, 0x31, 0x74, 0x3e, 0x85, 0xc5, 0x98, 0xad, 0x2c, 0xc5, 0xb5, 0xbf,
-	0x3a, 0x68, 0xee, 0x88, 0x7c, 0xf8, 0x88, 0xa7, 0x40, 0x17, 0xf3, 0x21, 0xa6, 0xd5, 0x9d, 0xf6,
-	0xfe, 0x3e, 0x66, 0xcf, 0xcf, 0xb5, 0x88, 0x4c, 0xa0, 0x46, 0xde, 0x9c, 0x33, 0xf2, 0x66, 0x4e,
-	0xe5, 0xcd, 0x7c, 0x94, 0x37, 0x0b, 0x1b, 0x75, 0xa8, 0x09, 0x87, 0x1c, 0x4d, 0x59, 0x1c, 0x3a,
-	0xbf, 0xcb, 0x01, 0x74, 0x5e, 0x8d, 0x54, 0xc2, 0x78, 0x00, 0xe5, 0xae, 0x00, 0xc7, 0x0d, 0x62,
-	0x39, 0xf1, 0x5a, 0xa2, 0x8f, 0x5d, 0xc5, 0x85, 0xb9, 0xa1, 0x1c, 0x4c, 0xbb, 0x5d, 0x1a, 0xa8,
-	0x24, 0x6a, 0x1f, 0x5a, 0xe3, 0x9c, 0xbb, 0x8a, 0x95, 0x49, 0x3d, 0xf7, 0xfa, 0x83, 0x29, 0xcf,
-	0xaa, 0x6f, 0x94, 0x92, 0xac, 0xce, 0x6f, 0x73, 0x50, 0xe5, 0xba, 0x66, 0xca, 0x4b, 0xef, 0x42,
-	0x85, 0xab, 0x41, 0x7b, 0x32, 0x33, 0x2d, 0xb8, 0x11, 0x81, 0xfc, 0x04, 0xf3, 0xa3, 0x94, 0x0b,
-	0xa4, 0x6e, 0x37, 0x93, 0x61, 0x85, 0x72, 0x11, 0xb7, 0xb3, 0x0d, 0x57, 0xb9, 0x7b, 0xba, 0x21,
-	0x9b, 0x90, 0x0e, 0x35, 0x2f, 0xfa, 0x9c, 0x75, 0xd1, 0xe3, 0xdc, 0xe4, 0xf4, 0x3c, 0xe8, 0x77,
-	0xbd, 0x81, 0x54, 0x44, 0x8f, 0xf1, 0x82, 0x21, 0x26, 0x58, 0xa6, 0xbb, 0x61, 0x11, 0xaa, 0x8f,
-	0xbd, 0xe0, 0x54, 0xaa, 0xe4, 0xfc, 0x1c, 0x6a, 0x62, 0x98, 0xc9, 0x8d, 0x78, 0x2b, 0x9e, 0x22,
-	0x0a, 0x57, 0x7c, 0xd1, 0xe5, 0xdf, 0xce, 0x55, 0xb8, 0xb2, 0x3f, 0xf2, 0x26, 0xc1, 0xe9, 0x58,
-	0x25, 0x5a, 0x56, 0xc6, 0x2d, 0x45, 0xb4, 0x4c, 0x2b, 0x7e, 0x04, 0x57, 0x7c, 0x3a, 0xf4, 0xfa,
-	0xa3, 0xfe, 0xe8, 0xe4, 0xe8, 0xf8, 0x3c, 0xa4, 0x81, 0xac, 0xf2, 0xea, 0x9a, 0xbc, 0xc1, 0xa8,
-	0x4c, 0xb5, 0xe3, 0xc1, 0xf8, 0x58, 0x9e, 0x75, 0xfe, 0xed, 0xfc, 0x1e, 0xef, 0x9c, 0x67, 0x5e,
-	0xd8, 0x55, 0x5e, 0x20, 0x5b, 0x50, 0xd7, 0x27, 0x9c, 0x53, 0xa4, 0x2e, 0x56, 0xb6, 0xe7, 0x32,
-	0x9b, 0xf2, 0xc4, 0xab, 0x6c, 0xbf, 0xd8, 0x35, 0x09, 0x1c, 0xca, 0x1b, 0x75, 0xe9, 0x40, 0x43,
-	0xe5, 0xd3, 0xa1, 0x38, 0xa3, 0x09, 0x65, 0x12, 0x36, 0xae, 0x44, 0x37, 0xa1, 0x38, 0x9f, 0xdf,
-	0xe6, 0x80, 0xcc, 0xea, 0xf0, 0x5d, 0x8b, 0xd0, 0x7b, 0x50, 0x0f, 0xf0, 0xd8, 0x87, 0x47, 0x56,
-	0x0d, 0xbc, 0xc8, 0xa9, 0x3a, 0x4b, 0xa1, 0x87, 0xb1, 0xf8, 0x3e, 0xc1, 0x90, 0x0e, 0x8e, 0x46,
-	0xe3, 0xb0, 0xff, 0xfc, 0x9c, 0x67, 0xc6, 0x05, 0xb7, 0xae, 0xc8, 0xbb, 0x9c, 0xea, 0x3c, 0x50,
-	0x4a, 0x99, 0xca, 0x93, 0x1b, 0xb0, 0xf0, 0x92, 0x51, 0x55, 0x75, 0x8e, 0x57, 0x3e, 0x1f, 0x6f,
-	0xf5, 0x9c, 0x7f, 0xe0, 0x05, 0x28, 0xdd, 0x9f, 0x29, 0x06, 0xcc, 0x25, 0xf2, 0xb1, 0x25, 0x58,
-	0xbd, 0x21, 0xb6, 0xa5, 0x27, 0x2b, 0x35, 0x35, 0x64, 0xe7, 0x4c, 0x78, 0x19, 0xa7, 0x84, 0x3d,
-	0x7a, 0x8c, 0x89, 0x7e, 0xa9, 0x2b, 0xce, 0x99, 0x95, 0xe9, 0xdd, 0x2b, 0x92, 0xae, 0xbd, 0x73,
-	0x0f, 0x4a, 0xf4, 0x8c, 0x8e, 0xc2, 0x60, 0xb5, 0xca, 0xf3, 0xc2, 0xa2, 0x2a, 0x17, 0xdb, 0x8c,
-	0xea, 0xca, 0x49, 0xe7, 0xc7, 0x70, 0x75, 0x87, 0xd5, 0x75, 0x8f, 0xd0, 0xfb, 0x66, 0x85, 0xd8,
-	0xe9, 0xec, 0x48, 0xaf, 0x14, 0xc2, 0xce, 0x0e, 0xa9, 0x43, 0x7e, 0xab, 0x25, 0x6d, 0xc8, 0xf7,
-	0x5b, 0xce, 0x2f, 0x71, 0xa3, 0x4d, 0xb9, 0x4c, 0x6e, 0xb2, 0xc0, 0xd5, 0xf2, 0x85, 0x68, 0x79,
-	0x2c, 0x45, 0xa9, 0xef, 0x8f, 0x7d, 0xee, 0x90, 0x8a, 0x2b, 0x06, 0xce, 0x5d, 0xa9, 0x03, 0xda,
-	0x3c, 0x7e, 0xa1, 0x83, 0x4d, 0xa0, 0xe5, 0xb4, 0xaa, 0xdb, 0xb0, 0x1c, 0xe3, 0xca, 0x94, 0x9c,
-	0x3e, 0x82, 0x6b, 0x1c, 0x6c, 0x9b, 0xd2, 0x49, 0x73, 0xd0, 0x3f, 0x4b, 0x5d, 0x75, 0x02, 0xd7,
-	0x6d, 0xc6, 0xff, 0xaf, 0x8f, 0x9c, 0x53, 0x28, 0x3d, 0xe1, 0xfd, 0xa3, 0xa1, 0x4b, 0x91, 0xf3,
-	0x62, 0x86, 0x19, 0x79, 0x43, 0x51, 0xdd, 0x57, 0x5c, 0xfe, 0xcd, 0xb3, 0x39, 0xa5, 0xfe, 0x81,
-	0xbb, 0x23, 0x2e, 0x8e, 0x8a, 0xab, 0xc7, 0xe4, 0x16, 0xeb, 0x5c, 0xfb, 0x18, 0x1e, 0x7c, 0xb6,
-	0xc8, 0x67, 0x0d, 0x0a, 0x76, 0x50, 0x4b, 0x62, 0xa5, 0x66, 0xaf, 0x67, 0xdc, 0x1c, 0x1a, 0x2f,
-	0x17, 0xc7, 0x73, 0x5e, 0xc2, 0x55, 0x83, 0x3f, 0x93, 0x1b, 0x3e, 0x81, 0x92, 0x68, 0x92, 0x65,
-	0xd2, 0x5a, 0x89, 0x4b, 0x89, 0x65, 0x5c, 0xc9, 0xe3, 0xdc, 0x83, 0x65, 0x49, 0xa1, 0xc3, 0x71,
-	0xd2, 0x5e, 0x71, 0xff, 0x38, 0x3b, 0xb0, 0x12, 0x67, 0xcb, 0x14, 0x22, 0x4d, 0xb5, 0xe8, 0xc1,
-	0xa4, 0x67, 0xe4, 0x40, 0x7b, 0x53, 0x4c, 0x87, 0xe5, 0x2d, 0x87, 0x69, 0x85, 0x14, 0x44, 0x26,
-	0x85, 0x96, 0x95, 0xfb, 0x77, 0xfa, 0x81, 0xbe, 0xe9, 0x5e, 0x03, 0x31, 0x89, 0x99, 0x36, 0x65,
-	0x0d, 0xca, 0xc2, 0xe1, 0xaa, 0xaa, 0x4a, 0xde, 0x15, 0xc5, 0xc4, 0x14, 0x6a, 0xd1, 0xe7, 0xbe,
-	0x77, 0x32, 0xa4, 0x3a, 0xe7, 0xb0, 0x12, 0xc2, 0x24, 0x66, 0xb2, 0xf8, 0x4f, 0x78, 0x7d, 0x36,
-	0x07, 0x9e, 0x3f, 0x54, 0xce, 0x7f, 0x08, 0x25, 0x51, 0x9b, 0xc8, 0x42, 0xfe, 0xc3, 0x38, 0x8c,
-	0xc9, 0x2b, 0x06, 0x4d, 0x51, 0xc9, 0x48, 0x29, 0xb6, 0x59, 0xf2, 0x6d, 0xa6, 0x65, 0xbd, 0xd5,
-	0xb4, 0xc8, 0x0f, 0x60, 0xde, 0x63, 0x22, 0xfc, 0x2c, 0xd6, 0xd7, 0xdf, 0x49, 0x80, 0xee, 0x9c,
-	0x4f, 0xa8, 0x2b, 0xb8, 0x9c, 0xcf, 0xa0, 0x6a, 0xac, 0xc0, 0xaa, 0xde, 0x47, 0xed, 0x0e, 0x96,
-	0xc2, 0x35, 0x58, 0x68, 0x6e, 0x76, 0xb6, 0x0e, 0x45, 0x31, 0x5c, 0x07, 0x68, 0xb5, 0xf5, 0x38,
-	0x8f, 0x55, 0x90, 0x90, 0x92, 0x27, 0xdc, 0xd4, 0x27, 0x97, 0xa6, 0x4f, 0xfe, 0xad, 0xf4, 0x79,
-	0x05, 0x8b, 0xd2, 0xfc, 0x4c, 0x31, 0xf0, 0x29, 0x7a, 0x98, 0xc1, 0xa8, 0x10, 0xb8, 0x91, 0xb0,
-	0xac, 0x3a, 0x9d, 0x82, 0xd1, 0xc1, 0xea, 0x61, 0x3f, 0xf4, 0xc2, 0x69, 0xa0, 0x42, 0xe0, 0x8f,
-	0x39, 0xa8, 0x2b, 0x4a, 0xd6, 0x66, 0x5e, 0xf5, 0x4a, 0x22, 0xe7, 0xe9, 0x4e, 0xe9, 0x3a, 0x94,
-	0x7a, 0xc7, 0xfb, 0xfd, 0xd7, 0xea, 0x51, 0x43, 0x8e, 0x18, 0x7d, 0x20, 0xd6, 0x11, 0x2f, 0x6a,
-	0x72, 0xc4, 0xca, 0x6f, 0xf6, 0xb6, 0xb6, 0x35, 0xea, 0xd1, 0x57, 0xfc, 0xa6, 0x2d, 0xba, 0x11,
-	0x81, 0x97, 0xcb, 0xf2, 0xe5, 0x8d, 0x37, 0x52, 0xe6, 0x4b, 0x1c, 0x06, 0x79, 0x73, 0x1a, 0x9e,
-	0xb6, 0x47, 0xec, 0xd1, 0x49, 0x59, 0xb8, 0x02, 0x84, 0x11, 0x5b, 0xfd, 0xc0, 0xa4, 0xb6, 0x61,
-	0x99, 0x51, 0x31, 0xee, 0xb1, 0x98, 0x8e, 0x32, 0x86, 0x4a, 0xdb, 0x39, 0x2b, 0x6d, 0x7b, 0x41,
-	0xf0, 0x72, 0xec, 0xf7, 0xa4, 0x69, 0x7a, 0xec, 0xb4, 0x04, 0xf8, 0x41, 0x10, 0x4b, 0xcc, 0xdf,
-	0x15, 0x65, 0x25, 0x42, 0x79, 0x44, 0xf5, 0xe9, 0xfc, 0x18, 0xae, 0x29, 0xaa, 0x6c, 0x9c, 0xd3,
-	0xe1, 0x9d, 0x3d, 0x78, 0x4f, 0x31, 0x6f, 0x9e, 0xb2, 0xa2, 0xee, 0xa9, 0x04, 0xff, 0x5f, 0x75,
-	0x7a, 0x08, 0x2b, 0x5a, 0x27, 0xb3, 0x4e, 0x41, 0x9c, 0x69, 0x20, 0x63, 0x03, 0x71, 0xd8, 0x37,
-	0xa3, 0xf9, 0xe3, 0x81, 0xbe, 0xec, 0xd8, 0xb7, 0xf3, 0x4e, 0xa4, 0x7d, 0xac, 0x56, 0x70, 0xee,
-	0x0b, 0x63, 0x5d, 0x64, 0xba, 0xd8, 0x65, 0xca, 0x2d, 0x8c, 0xd3, 0x70, 0x8b, 0x04, 0x66, 0xd4,
-	0x98, 0x5b, 0x1c, 0x57, 0x68, 0xcc, 0xd9, 0x2d, 0x8d, 0x67, 0x2c, 0xff, 0x10, 0x8a, 0x13, 0x2a,
-	0xcf, 0x6b, 0x75, 0x9d, 0xac, 0x89, 0xd7, 0xe5, 0xb5, 0xa7, 0x48, 0xeb, 0x07, 0x2c, 0x6a, 0x5d,
-	0x3e, 0x6f, 0x2e, 0x16, 0xb7, 0xe2, 0x4b, 0xa1, 0x9b, 0x0a, 0xb5, 0x4c, 0xa9, 0x73, 0x5b, 0xc4,
-	0xa2, 0x8e, 0xd0, 0x4c, 0x60, 0xc7, 0xc2, 0x0b, 0x51, 0x60, 0x67, 0x3a, 0xd5, 0x58, 0x04, 0x86,
-	0x68, 0xb5, 0x3a, 0xd3, 0x62, 0xa0, 0x14, 0xd6, 0x51, 0x7f, 0x19, 0xd6, 0xeb, 0xe0, 0xcf, 0x04,
-	0xb6, 0x0b, 0xd7, 0xed, 0x33, 0x93, 0x09, 0xef, 0x10, 0x6e, 0xa5, 0x1d, 0xab, 0x4c, 0xb8, 0x4f,
-	0xa2, 0xd3, 0x71, 0x09, 0xd5, 0xbc, 0x69, 0xf6, 0xa5, 0x94, 0xdc, 0x72, 0x4f, 0xf4, 0x19, 0xbd,
-	0x2c, 0xb0, 0x4b, 0xdb, 0x60, 0xf3, 0xf4, 0x5f, 0xc6, 0x46, 0x18, 0x49, 0xe3, 0xb2, 0xd4, 0xbb,
-	0x8c, 0x8d, 0xf8, 0xbe, 0x03, 0x15, 0x5d, 0x3d, 0x18, 0x7f, 0x38, 0xa9, 0x42, 0x79, 0x77, 0x6f,
-	0xff, 0x69, 0x73, 0x13, 0xeb, 0x96, 0xf5, 0x7f, 0xe6, 0x21, 0xbf, 0x7d, 0x48, 0x36, 0x60, 0x5e,
-	0x3c, 0xf9, 0x5e, 0xf0, 0x28, 0xde, 0xb8, 0xe8, 0xf1, 0xd8, 0x99, 0x23, 0x9f, 0x43, 0x81, 0x3d,
-	0xfa, 0xa6, 0xbe, 0x8a, 0x37, 0xd2, 0x1f, 0x8e, 0x51, 0xba, 0x03, 0x55, 0xe3, 0x85, 0x97, 0xbc,
-	0xf1, 0x55, 0xbc, 0xf1, 0xe6, 0xd7, 0x63, 0xa1, 0x53, 0xe7, 0xd5, 0xc8, 0xd6, 0x29, 0x7a, 0x91,
-	0xb4, 0x75, 0x32, 0xde, 0xff, 0x50, 0x7a, 0x57, 0xbe, 0x2c, 0x77, 0x43, 0xf2, 0x7e, 0xc2, 0x43,
-	0xa5, 0xf9, 0x12, 0xd7, 0xb8, 0x9d, 0xce, 0xa0, 0xf0, 0xd6, 0xf7, 0x60, 0x9e, 0xbf, 0x52, 0x90,
-	0x2f, 0xd4, 0x47, 0x23, 0xe1, 0x0d, 0x27, 0xc5, 0xdd, 0xb1, 0xf7, 0x0d, 0x67, 0xee, 0x7e, 0xee,
-	0x87, 0xb9, 0xf5, 0x6f, 0xf3, 0x30, 0xcf, 0xbb, 0x56, 0xf2, 0x15, 0x40, 0xd4, 0xde, 0xdb, 0xda,
-	0xce, 0x3c, 0x18, 0xd8, 0xda, 0xce, 0xbe, 0x0c, 0x88, 0x1d, 0x31, 0xfa, 0x70, 0x92, 0x24, 0x12,
-	0xbb, 0xd6, 0xec, 0x1d, 0x49, 0x68, 0xe2, 0x11, 0xd5, 0x83, 0x7a, 0xbc, 0xcf, 0x26, 0x77, 0x12,
-	0xc4, 0xec, 0x76, 0xbd, 0x71, 0xf7, 0x62, 0xa6, 0x98, 0x57, 0xfe, 0x92, 0xc7, 0x7d, 0x13, 0x7f,
-	0xb7, 0xc5, 0x2d, 0xac, 0xe8, 0x56, 0x96, 0xdc, 0x4a, 0x6a, 0x73, 0xa2, 0x3a, 0xa2, 0xf1, 0x7e,
-	0xea, 0xbc, 0x56, 0xff, 0x19, 0xd4, 0xcc, 0xd6, 0x93, 0x7c, 0x90, 0xd8, 0x39, 0x99, 0xdd, 0x6b,
-	0xc3, 0xb9, 0x88, 0x65, 0x16, 0x58, 0xb4, 0x90, 0xc9, 0xc0, 0xb1, 0x0e, 0x35, 0x19, 0x38, 0xde,
-	0x81, 0x22, 0x30, 0x46, 0x46, 0xd4, 0x38, 0x92, 0x44, 0x13, 0x8d, 0x3e, 0xd3, 0x8e, 0x8c, 0xd9,
-	0x9e, 0x13, 0xe3, 0xf8, 0x3f, 0x79, 0xa8, 0x3e, 0xf1, 0xfa, 0xa3, 0x90, 0x8e, 0xd8, 0x43, 0x17,
-	0xcb, 0x1e, 0x3c, 0xd1, 0xd8, 0xe1, 0x6c, 0xb6, 0x69, 0x76, 0x38, 0xc7, 0x7a, 0x18, 0x54, 0xb3,
-	0x0d, 0x25, 0xd1, 0x4a, 0x10, 0x8b, 0x31, 0xd6, 0x72, 0x34, 0xde, 0x4d, 0x9e, 0x34, 0xad, 0x8d,
-	0xba, 0x52, 0xdb, 0xda, 0x99, 0x26, 0xb6, 0x71, 0x3b, 0x9d, 0x41, 0x43, 0xfe, 0x0c, 0x8a, 0xec,
-	0x41, 0x9b, 0x58, 0xa9, 0xc2, 0x78, 0xf3, 0x6e, 0x34, 0x92, 0xa6, 0x34, 0xc0, 0x13, 0x58, 0x50,
-	0x6f, 0xd4, 0xe4, 0x3d, 0x4b, 0xff, 0xf8, 0x7b, 0x76, 0xe3, 0x56, 0xda, 0xb4, 0x02, 0xc3, 0xf0,
-	0xfe, 0x6b, 0x05, 0x8a, 0xec, 0x9e, 0x60, 0xb6, 0x46, 0x65, 0xa4, 0x6d, 0xeb, 0x4c, 0x2f, 0x63,
-	0xdb, 0x3a, 0x5b, 0x81, 0x8a, 0x33, 0x6f, 0x54, 0x93, 0x24, 0x41, 0x24, 0xde, 0x0a, 0xd9, 0x67,
-	0x3e, 0xa1, 0x14, 0x15, 0xb1, 0x6d, 0x96, 0x95, 0x24, 0x41, 0xc8, 0xea, 0xa5, 0xec, 0xd8, 0x4e,
-	0xaa, 0x4a, 0x11, 0xf8, 0x29, 0x94, 0x65, 0x1d, 0x99, 0xa4, 0x6a, 0xbc, 0xb1, 0x4a, 0x52, 0xd5,
-	0x2a, 0x42, 0x23, 0x44, 0xac, 0x35, 0xd2, 0x10, 0xa3, 0x6e, 0x22, 0x0d, 0xd1, 0x28, 0x54, 0x10,
-	0xf1, 0x6b, 0x80, 0xa8, 0xa2, 0xb4, 0x93, 0x5d, 0x62, 0x8f, 0x66, 0x27, 0xbb, 0xe4, 0xa2, 0x14,
-	0xa1, 0xbf, 0x01, 0x32, 0x5b, 0x5c, 0x92, 0x8f, 0x93, 0xa5, 0x13, 0x3b, 0xbb, 0xc6, 0x27, 0x6f,
-	0xc7, 0xac, 0x97, 0x3c, 0x84, 0x8a, 0xae, 0x3b, 0x89, 0x93, 0x62, 0xbf, 0x79, 0xd3, 0xdc, 0xb9,
-	0x90, 0xc7, 0xf6, 0x92, 0xbc, 0x6b, 0x52, 0x84, 0xe2, 0xd7, 0xcd, 0xdd, 0x8b, 0x99, 0xcc, 0x2d,
-	0x95, 0xb5, 0x68, 0xd2, 0x96, 0xc6, 0x5b, 0xc9, 0xa4, 0x2d, 0xb5, 0x0a, 0xd9, 0x08, 0x31, 0x25,
-	0x48, 0xe2, 0x2d, 0x67, 0x1a, 0xe2, 0x4c, 0x90, 0x44, 0x55, 0x69, 0x92, 0xf9, 0x33, 0x1d, 0x6b,
-	0x92, 0xf9, 0xb3, 0x85, 0xad, 0xd8, 0x31, 0x5d, 0xa0, 0x26, 0xed, 0x98, 0xdd, 0xf2, 0x36, 0xee,
-	0x5c, 0xc8, 0x63, 0xab, 0x9c, 0xbe, 0x63, 0x33, 0x7d, 0x6f, 0x9a, 0xca, 0xf6, 0x8e, 0x6d, 0xd4,
-	0xfe, 0xf0, 0xf7, 0x5b, 0xb9, 0x3f, 0xe3, 0xbf, 0xbf, 0xe1, 0xbf, 0xe3, 0x12, 0xff, 0x1f, 0x5b,
-	0x3f, 0xfa, 0x6f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xf4, 0xad, 0xd4, 0x1a, 0x26, 0x00, 0x00,
+	// 2656 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xbc, 0x5a, 0xdd, 0x73, 0x1c, 0x47,
+	0x11, 0xd7, 0xdd, 0x49, 0xf7, 0xd1, 0x77, 0x3a, 0x2b, 0x63, 0xd9, 0xc8, 0xe7, 0x8f, 0x38, 0x63,
+	0x3b, 0x04, 0x12, 0x64, 0xa2, 0xe4, 0x85, 0x22, 0x15, 0xea, 0xa4, 0x3b, 0xdb, 0x8a, 0x64, 0xc9,
+	0x59, 0x9d, 0x64, 0x4c, 0x41, 0x89, 0xd5, 0xdd, 0x58, 0x3a, 0x7c, 0x5f, 0xd9, 0xdd, 0x93, 0x2d,
+	0x57, 0x51, 0x50, 0x54, 0x28, 0xfe, 0x00, 0xde, 0x28, 0xfe, 0xa0, 0xc0, 0x13, 0x7f, 0x41, 0xa0,
+	0x78, 0xa2, 0xf2, 0xc2, 0x3b, 0xbc, 0xd0, 0xf3, 0xb5, 0x3b, 0xbb, 0xb7, 0x27, 0xbb, 0x98, 0x8b,
+	0x1f, 0x24, 0xed, 0xcc, 0x74, 0xff, 0xa6, 0x7b, 0xba, 0xa7, 0xa7, 0xa7, 0x47, 0x50, 0xf2, 0x46,
+	0xed, 0xd5, 0x91, 0x37, 0x0c, 0x86, 0xa4, 0xc2, 0x82, 0x76, 0xc7, 0x67, 0xde, 0x29, 0xf3, 0x46,
+	0x47, 0xb5, 0xe5, 0xe3, 0xe1, 0xf1, 0x50, 0x0c, 0xdc, 0xe5, 0x5f, 0x92, 0xa6, 0x76, 0x85, 0xd3,
+	0xdc, 0xed, 0x9f, 0xb6, 0xdb, 0xe2, 0xd7, 0xe8, 0xe8, 0xee, 0xb3, 0x53, 0x35, 0x74, 0x55, 0x0c,
+	0xb9, 0xe3, 0xe0, 0x44, 0xfc, 0xc2, 0x21, 0xfe, 0x47, 0x0e, 0xd2, 0xf7, 0x61, 0xd1, 0x61, 0x5f,
+	0x8c, 0x99, 0x1f, 0x3c, 0x60, 0x6e, 0x87, 0x79, 0xa4, 0x06, 0xc5, 0x31, 0xce, 0x35, 0x70, 0xfb,
+	0x6c, 0x25, 0x73, 0x33, 0xf3, 0x5e, 0xc9, 0x09, 0xdb, 0xf4, 0xf7, 0x19, 0xa8, 0x3a, 0xcc, 0x1f,
+	0x0d, 0x07, 0x3e, 0x53, 0xe4, 0xd7, 0x01, 0xda, 0xbd, 0xb1, 0x1f, 0x30, 0xef, 0xb0, 0xdb, 0x11,
+	0x0c, 0xf3, 0x4e, 0x49, 0xf5, 0x6c, 0x76, 0xc8, 0x55, 0x28, 0xf5, 0x59, 0xff, 0x48, 0x8e, 0x66,
+	0xc5, 0x68, 0x51, 0x76, 0xe0, 0x20, 0x4e, 0xe5, 0xb1, 0xd3, 0xae, 0xdf, 0x1d, 0x0e, 0x56, 0x72,
+	0x38, 0x96, 0x73, 0xc2, 0x36, 0x67, 0xf4, 0xdc, 0xa7, 0xc1, 0x21, 0xc2, 0xf4, 0x57, 0xe6, 0x25,
+	0x23, 0xef, 0x68, 0x61, 0x9b, 0xfe, 0x25, 0x07, 0x15, 0xc7, 0x1d, 0x1c, 0x33, 0x25, 0x3a, 0xf9,
+	0x08, 0xf2, 0x27, 0x42, 0x1e, 0x21, 0x41, 0x79, 0xed, 0xea, 0xaa, 0xb9, 0x64, 0xab, 0x31, 0x0d,
+	0x1d, 0x45, 0x4a, 0x96, 0x20, 0xf7, 0x8c, 0x9d, 0x09, 0xa9, 0x2a, 0x0e, 0xff, 0x94, 0x93, 0x22,
+	0xec, 0x21, 0x1b, 0x74, 0x84, 0x44, 0x15, 0x3e, 0x29, 0x76, 0x34, 0x07, 0x1d, 0xb2, 0x0c, 0x0b,
+	0xbd, 0x6e, 0xbf, 0x1b, 0x08, 0x69, 0x72, 0x8e, 0x6c, 0xc4, 0x74, 0x58, 0x48, 0xe8, 0xb0, 0x01,
+	0xe0, 0x0f, 0xbd, 0xe0, 0x70, 0xe8, 0x71, 0xc9, 0xf2, 0x38, 0x5a, 0x5d, 0xbb, 0x9d, 0x90, 0xcc,
+	0xd0, 0x62, 0x75, 0x0f, 0x89, 0x77, 0x39, 0xad, 0x53, 0xf2, 0xf5, 0x27, 0xb9, 0x07, 0x65, 0x01,
+	0x12, 0xb8, 0xde, 0x31, 0x0b, 0x56, 0x0a, 0x02, 0xe5, 0xce, 0x2b, 0x50, 0x5a, 0x82, 0xd8, 0x11,
+	0xd3, 0xcb, 0x6f, 0x42, 0xa1, 0x82, 0xf4, 0x5d, 0xb7, 0xd7, 0x7d, 0xe9, 0x1e, 0xf5, 0xd8, 0x4a,
+	0x11, 0x81, 0x8a, 0x4e, 0xac, 0x8f, 0xae, 0x42, 0x29, 0x94, 0x81, 0x14, 0x61, 0x7e, 0x67, 0x77,
+	0xa7, 0xb9, 0x34, 0x47, 0x00, 0xf2, 0xf5, 0xbd, 0x8d, 0xe6, 0x4e, 0x63, 0x29, 0x43, 0xca, 0x50,
+	0x68, 0x34, 0x65, 0x23, 0x4b, 0xd7, 0x01, 0xa2, 0xd9, 0x48, 0x01, 0x72, 0x5b, 0xcd, 0x27, 0x48,
+	0x8f, 0x34, 0x07, 0x4d, 0x67, 0x6f, 0x73, 0x77, 0x07, 0x19, 0x90, 0x79, 0xc3, 0x69, 0xd6, 0x5b,
+	0xcd, 0xa5, 0x2c, 0xa7, 0x78, 0xb8, 0xdb, 0x58, 0xca, 0x91, 0x12, 0x2c, 0x1c, 0xd4, 0xb7, 0xf7,
+	0x9b, 0x4b, 0xf3, 0xf4, 0xd7, 0xe8, 0x80, 0x52, 0x7c, 0xe9, 0x57, 0xe4, 0xe3, 0x84, 0x2d, 0xaf,
+	0x25, 0x6d, 0x69, 0xfa, 0x5f, 0x68, 0x4c, 0x8a, 0xc6, 0x3c, 0xf5, 0xd1, 0x98, 0x39, 0x64, 0x59,
+	0x5a, 0x95, 0x7b, 0x60, 0x75, 0x8b, 0x9d, 0x1d, 0xb8, 0xbd, 0x31, 0x73, 0xf8, 0x20, 0x21, 0x30,
+	0xdf, 0x1f, 0x7a, 0x4c, 0x58, 0xb6, 0xe8, 0x88, 0x6f, 0xfa, 0x1b, 0x80, 0x47, 0xe3, 0x60, 0xc6,
+	0x7e, 0x84, 0xae, 0x72, 0xca, 0xa7, 0x55, 0x3e, 0x24, 0x1b, 0xc2, 0x81, 0x98, 0xeb, 0xb3, 0xd0,
+	0x81, 0x78, 0x83, 0x6e, 0x40, 0x59, 0x08, 0x60, 0xa3, 0x3d, 0x7d, 0x01, 0xa4, 0xc1, 0x7a, 0x2c,
+	0x60, 0x6f, 0x7a, 0x57, 0x50, 0x06, 0x17, 0x63, 0x33, 0x5b, 0x19, 0x71, 0x05, 0x0a, 0x1d, 0x01,
+	0x26, 0x63, 0x45, 0xce, 0xd1, 0x4d, 0xfa, 0xef, 0x0c, 0xee, 0x78, 0x29, 0xef, 0xfe, 0x80, 0xef,
+	0xad, 0x3a, 0x2c, 0x7a, 0xb2, 0x7d, 0x28, 0x64, 0x51, 0xf3, 0xd4, 0xa6, 0x6f, 0x8c, 0x07, 0x73,
+	0x4e, 0x45, 0xb1, 0x88, 0x6e, 0xf2, 0x63, 0x28, 0x6b, 0x88, 0xd1, 0x38, 0x10, 0x33, 0x96, 0xd7,
+	0x56, 0xe2, 0x00, 0x91, 0x6f, 0x20, 0x3b, 0x28, 0x72, 0xec, 0x24, 0x2d, 0x58, 0xd6, 0xcc, 0x52,
+	0x46, 0x25, 0x46, 0x4e, 0xa0, 0xdc, 0x8c, 0xa3, 0x4c, 0xda, 0x06, 0xd1, 0x88, 0xe2, 0x37, 0x06,
+	0xd7, 0x4b, 0x50, 0x50, 0xbd, 0xf4, 0x3f, 0x19, 0x1e, 0x99, 0xe5, 0x32, 0x49, 0x95, 0x1b, 0x50,
+	0xf5, 0x54, 0x47, 0x4c, 0xe7, 0xab, 0xa9, 0x3a, 0xab, 0x05, 0x9e, 0x73, 0x16, 0x35, 0x93, 0xd4,
+	0xfa, 0x53, 0xa8, 0x84, 0x28, 0x91, 0xda, 0x57, 0x52, 0xd4, 0x0e, 0x11, 0xca, 0x9a, 0x81, 0x2b,
+	0xfe, 0x18, 0x2e, 0x85, 0xfc, 0x29, 0x9a, 0xbf, 0x73, 0x8e, 0xe6, 0x21, 0xe0, 0x45, 0x8d, 0x60,
+	0xea, 0x0e, 0x3c, 0x92, 0xca, 0x6e, 0xfa, 0xa7, 0x1c, 0x14, 0x36, 0x86, 0xfd, 0x91, 0xeb, 0x71,
+	0x33, 0xe5, 0xb1, 0x7f, 0xdc, 0x0b, 0x84, 0xba, 0xd5, 0xb5, 0x5b, 0xf1, 0x19, 0x14, 0x99, 0xfe,
+	0xeb, 0x08, 0x52, 0x47, 0xb1, 0x70, 0x66, 0x15, 0x38, 0xb3, 0xaf, 0xc1, 0xac, 0xc2, 0xa6, 0x62,
+	0xd1, 0x5b, 0x21, 0x17, 0x6d, 0x85, 0x1a, 0x14, 0x90, 0x51, 0x04, 0x7b, 0xb1, 0x89, 0x51, 0x17,
+	0xdd, 0x41, 0xbe, 0x07, 0x17, 0xda, 0x1e, 0x73, 0xf9, 0x7a, 0xc4, 0x0e, 0x04, 0xa4, 0xa9, 0xca,
+	0x01, 0x47, 0x1f, 0x0c, 0xb7, 0xa0, 0xd2, 0x1f, 0x76, 0x22, 0xba, 0xbc, 0xa2, 0x2b, 0x63, 0x6f,
+	0x48, 0x74, 0x59, 0x07, 0x11, 0x1e, 0xf2, 0x2b, 0x38, 0x2a, 0x9b, 0xf4, 0x43, 0x58, 0x8c, 0xe9,
+	0xca, 0x83, 0x69, 0xf3, 0xf3, 0xfd, 0xfa, 0xb6, 0x8c, 0xbc, 0xf7, 0x45, 0xb0, 0x75, 0x30, 0xf2,
+	0x62, 0x00, 0xdf, 0x6e, 0xee, 0xed, 0x61, 0x9c, 0xfe, 0x24, 0x64, 0x51, 0xa1, 0xda, 0x88, 0xd0,
+	0x73, 0x46, 0x84, 0xce, 0xe8, 0x08, 0x9d, 0x8d, 0x22, 0x74, 0x6e, 0xbd, 0x0a, 0x15, 0xb9, 0x20,
+	0x87, 0x63, 0xee, 0x87, 0xf4, 0xeb, 0x0c, 0x40, 0xeb, 0xc5, 0xc0, 0x2a, 0xca, 0xdc, 0x85, 0x42,
+	0x5b, 0x4a, 0xa4, 0x42, 0xf6, 0xa5, 0x54, 0xc3, 0x38, 0x9a, 0x0a, 0x03, 0x4a, 0xc1, 0x1f, 0xb7,
+	0xdb, 0xcc, 0xf7, 0xd1, 0x1e, 0xb9, 0x94, 0x9d, 0x6e, 0x04, 0x07, 0x47, 0x93, 0x72, 0xae, 0xa7,
+	0x6e, 0xb7, 0x37, 0xf6, 0x78, 0xd0, 0x7d, 0x25, 0x97, 0x22, 0xa5, 0x7f, 0xce, 0x40, 0x59, 0x28,
+	0x68, 0x15, 0xcc, 0xae, 0x41, 0x49, 0x88, 0xc1, 0x3a, 0x2a, 0x9c, 0x15, 0x9d, 0xa8, 0x83, 0xfc,
+	0x08, 0x83, 0xaa, 0xe2, 0xd3, 0x1a, 0x5d, 0x4d, 0x87, 0x95, 0xc2, 0x45, 0xd4, 0xf4, 0xb7, 0x19,
+	0x78, 0x4b, 0xac, 0x4f, 0x3b, 0xe0, 0x23, 0x36, 0x66, 0x30, 0xb3, 0x97, 0x6c, 0x22, 0x7b, 0xc1,
+	0xb1, 0xd1, 0xc9, 0x99, 0xdf, 0x6d, 0xbb, 0x3d, 0x75, 0x62, 0x86, 0x6d, 0xfa, 0x19, 0x10, 0x53,
+	0x02, 0xab, 0xb3, 0x6b, 0x1d, 0xca, 0x0f, 0x5c, 0xff, 0xc4, 0x46, 0x0f, 0xfa, 0x53, 0xa8, 0x48,
+	0x0c, 0x2b, 0x8b, 0x61, 0x7e, 0x70, 0x82, 0x28, 0x62, 0x25, 0x16, 0x1d, 0xf1, 0x4d, 0xef, 0xc1,
+	0x85, 0xbd, 0x81, 0x3b, 0xf2, 0x4f, 0x86, 0x56, 0x49, 0x02, 0x4f, 0x9d, 0x97, 0x22, 0x20, 0x2b,
+	0x31, 0xbf, 0x0b, 0x17, 0x3c, 0xd6, 0x77, 0xbb, 0x83, 0xee, 0xe0, 0xf8, 0xf0, 0xe8, 0x2c, 0x60,
+	0xbe, 0xca, 0xac, 0xab, 0x61, 0xf7, 0x3a, 0xef, 0xe5, 0xfa, 0x1c, 0xf5, 0x86, 0x47, 0x2a, 0x80,
+	0x89, 0x6f, 0xfa, 0x0d, 0x1e, 0xa4, 0x8f, 0xdd, 0xa0, 0x6d, 0xb5, 0xde, 0x64, 0x13, 0xaa, 0x61,
+	0xac, 0x13, 0xe3, 0xea, 0x18, 0x49, 0x9c, 0x7b, 0x62, 0xa2, 0x0d, 0x15, 0xfb, 0xf4, 0xb9, 0xb7,
+	0xd8, 0x36, 0x3b, 0x04, 0x94, 0x3b, 0x68, 0xb3, 0x5e, 0x08, 0x95, 0x9b, 0x0e, 0x25, 0x08, 0x4d,
+	0x28, 0xb3, 0x63, 0xfd, 0x42, 0x94, 0x13, 0xc8, 0x48, 0xf5, 0x55, 0x06, 0xc8, 0xa4, 0x0c, 0x6f,
+	0xe4, 0xb6, 0x70, 0x07, 0xaa, 0x3e, 0x46, 0xcd, 0x20, 0x0a, 0xf2, 0x32, 0xeb, 0x5b, 0x14, 0xbd,
+	0x61, 0x90, 0x47, 0x5b, 0xe2, 0x3d, 0xec, 0x18, 0x37, 0xb7, 0x7f, 0x38, 0x18, 0x06, 0xdd, 0xa7,
+	0x67, 0xe2, 0xd0, 0x28, 0x3a, 0x55, 0xdd, 0xbd, 0x23, 0x7a, 0x69, 0x47, 0x6b, 0x62, 0x6a, 0xfc,
+	0xff, 0x69, 0x72, 0x05, 0x8a, 0xcf, 0x39, 0x94, 0xbe, 0x92, 0x61, 0x9a, 0x25, 0xda, 0x9b, 0x1d,
+	0xfa, 0x2f, 0x4c, 0x3a, 0x94, 0x77, 0x58, 0xb9, 0xe8, 0xf4, 0x29, 0x78, 0x8e, 0x27, 0x1d, 0xa0,
+	0xa3, 0xa2, 0x8a, 0x6e, 0xf2, 0x80, 0x23, 0xed, 0x89, 0x43, 0xf3, 0x32, 0xe0, 0xe8, 0x36, 0x1e,
+	0xae, 0x4b, 0x6d, 0x19, 0x70, 0x12, 0xa7, 0xab, 0x73, 0x41, 0xf5, 0x87, 0x4b, 0x7a, 0x07, 0xf2,
+	0xec, 0x94, 0x0d, 0x02, 0x7f, 0xa5, 0x2c, 0xc2, 0xea, 0xa2, 0xbe, 0x0c, 0x34, 0x79, 0xaf, 0xa3,
+	0x06, 0xe9, 0xaf, 0xe0, 0xad, 0x6d, 0x9e, 0x80, 0xdf, 0x47, 0x93, 0x59, 0xe7, 0xff, 0xad, 0xd6,
+	0xb6, 0xd2, 0x33, 0x17, 0xb4, 0xb6, 0x49, 0x15, 0xb2, 0x9b, 0x0d, 0x75, 0xa5, 0xcd, 0x76, 0x1b,
+	0xf4, 0x77, 0xe8, 0x87, 0xe6, 0x64, 0x56, 0x6b, 0x2b, 0xc1, 0xb3, 0x1a, 0x5c, 0x4f, 0x9f, 0x8b,
+	0xa6, 0xc7, 0x8b, 0x06, 0xf3, 0xbc, 0xa1, 0x27, 0x56, 0xb1, 0xe4, 0xc8, 0x06, 0x7d, 0xa2, 0x64,
+	0xc0, 0x85, 0x1a, 0x3e, 0xb3, 0xdb, 0x0b, 0x09, 0x11, 0xe8, 0x16, 0x5c, 0x8c, 0x41, 0x5b, 0x9d,
+	0x07, 0x3f, 0x87, 0x4b, 0x02, 0x6c, 0x8b, 0xb1, 0x51, 0xbd, 0xd7, 0x3d, 0x9d, 0xad, 0xa8, 0x23,
+	0xb8, 0x9c, 0x44, 0xff, 0x76, 0xad, 0x41, 0x4f, 0x20, 0xff, 0x50, 0x54, 0x3c, 0x14, 0xad, 0xac,
+	0x91, 0x70, 0x5a, 0x8c, 0xcf, 0xa2, 0xcc, 0x92, 0x15, 0x66, 0x12, 0xdf, 0xe2, 0xd4, 0x65, 0xcc,
+	0xdb, 0x77, 0xb6, 0x65, 0x5a, 0x50, 0x72, 0xc2, 0x36, 0xb9, 0xc1, 0x6b, 0x2d, 0x5d, 0xf4, 0x5e,
+	0x31, 0x3a, 0x2f, 0x46, 0x8d, 0x1e, 0xda, 0x86, 0x25, 0x39, 0x53, 0xbd, 0xd3, 0xb1, 0x4d, 0x0b,
+	0x42, 0x21, 0xb2, 0x71, 0x21, 0xe8, 0x73, 0x78, 0xcb, 0x98, 0xc4, 0x6a, 0xed, 0x3e, 0x80, 0xbc,
+	0xac, 0x05, 0xa9, 0xd3, 0x63, 0x39, 0xce, 0x25, 0xa7, 0x71, 0x14, 0x0d, 0xfd, 0x19, 0x5c, 0x54,
+	0x3d, 0xac, 0x3f, 0x9c, 0x99, 0x57, 0x08, 0x4b, 0xd0, 0x6d, 0x58, 0x8e, 0x63, 0x5b, 0x79, 0xf0,
+	0xa9, 0x96, 0x74, 0x7f, 0xd4, 0xb1, 0x3d, 0x76, 0x12, 0x92, 0x9e, 0xe7, 0x1f, 0x91, 0x16, 0x7a,
+	0x5e, 0x2b, 0x2d, 0x1e, 0x68, 0x43, 0x6f, 0x77, 0x7d, 0xbb, 0xdc, 0xe7, 0x25, 0x10, 0x13, 0xc9,
+	0xca, 0x67, 0x56, 0xa1, 0x20, 0xfd, 0x41, 0xd7, 0x7a, 0xd2, 0x9d, 0x46, 0x13, 0x71, 0x2d, 0x1a,
+	0xec, 0xa9, 0xe7, 0x1e, 0xf7, 0x99, 0x5d, 0x98, 0xe7, 0x39, 0xaf, 0x89, 0x64, 0xb5, 0xb6, 0x5f,
+	0x66, 0xa1, 0x52, 0xef, 0xb9, 0x5e, 0xdf, 0xca, 0x37, 0x3e, 0x85, 0xbc, 0xcc, 0xc0, 0xd5, 0xe5,
+	0xf6, 0xdd, 0x38, 0x93, 0x39, 0x81, 0x6c, 0xd4, 0x65, 0xbe, 0xae, 0xb8, 0xb8, 0x2f, 0xa9, 0x5a,
+	0xac, 0x3c, 0xac, 0xa2, 0xda, 0x6c, 0x83, 0xfc, 0x00, 0x16, 0x5c, 0xce, 0x22, 0xce, 0x90, 0xea,
+	0xda, 0x77, 0x52, 0xa0, 0x5b, 0x67, 0x23, 0xe6, 0x48, 0x2a, 0xfa, 0x31, 0x94, 0x8d, 0x19, 0xf8,
+	0x35, 0xf2, 0x7e, 0xb3, 0x85, 0x77, 0xcb, 0x0a, 0x14, 0xeb, 0x1b, 0xad, 0xcd, 0x03, 0x79, 0xbb,
+	0xac, 0x02, 0x34, 0x9a, 0x61, 0x3b, 0x8b, 0x69, 0xbb, 0xe4, 0x52, 0xf1, 0xd1, 0x94, 0x27, 0x33,
+	0x4d, 0x9e, 0xec, 0x6b, 0xc9, 0xf3, 0x02, 0x16, 0x95, 0xfa, 0x56, 0xde, 0xf6, 0x21, 0xae, 0x30,
+	0x87, 0xd1, 0xce, 0x76, 0x25, 0x65, 0x5a, 0x1d, 0xa6, 0x24, 0x21, 0x6d, 0xc0, 0xe2, 0x5e, 0xe0,
+	0x06, 0x63, 0xdf, 0xca, 0xd9, 0xfe, 0x9a, 0x81, 0xaa, 0x86, 0xb1, 0x2d, 0xa9, 0xe9, 0x8a, 0x85,
+	0x3c, 0x66, 0xc2, 0x7a, 0xc5, 0x65, 0xc8, 0x77, 0x8e, 0xf6, 0xba, 0x2f, 0x99, 0x3a, 0xac, 0x54,
+	0x8b, 0xf7, 0xf7, 0xe4, 0x3c, 0xb2, 0xec, 0xae, 0x5a, 0xfc, 0x3e, 0xcb, 0x0b, 0xf0, 0x9b, 0x83,
+	0x0e, 0x7b, 0x21, 0x72, 0xaf, 0x79, 0x27, 0xea, 0x10, 0x37, 0x49, 0x55, 0x9e, 0x17, 0xe5, 0x0c,
+	0xb3, 0x5c, 0x8f, 0x7b, 0xb0, 0x3e, 0x0e, 0x4e, 0x9a, 0x03, 0x5e, 0x64, 0xb6, 0x5a, 0x96, 0x4d,
+	0x20, 0x1c, 0xa9, 0xd1, 0xf5, 0xad, 0xa1, 0x9a, 0x70, 0x91, 0x43, 0xe1, 0x5e, 0xc6, 0x1b, 0x6d,
+	0x14, 0xa4, 0xf5, 0x99, 0x9c, 0x49, 0x9c, 0xc9, 0xae, 0xef, 0x3f, 0x1f, 0x7a, 0x1d, 0xb5, 0x88,
+	0x61, 0x9b, 0x9e, 0x49, 0x89, 0xf6, 0x7d, 0xfb, 0x53, 0x77, 0x5a, 0x3a, 0xa0, 0xa7, 0xce, 0x25,
+	0xa6, 0xde, 0x8c, 0xa6, 0xbe, 0xcf, 0xec, 0x62, 0xdb, 0x2f, 0xe1, 0x92, 0x86, 0x52, 0x25, 0xb9,
+	0x19, 0x2b, 0x42, 0xbf, 0xcc, 0xc0, 0x75, 0x3d, 0xc5, 0xc6, 0x09, 0xbf, 0x25, 0x3d, 0x52, 0x7a,
+	0xbc, 0xd1, 0x35, 0xf3, 0x61, 0x39, 0x5c, 0x33, 0xeb, 0xc4, 0x1f, 0x27, 0xe7, 0x4f, 0x63, 0x7a,
+	0x72, 0xfe, 0xcd, 0xfb, 0xbc, 0x61, 0x8f, 0xa9, 0x89, 0xc5, 0x37, 0x9e, 0xcb, 0xe1, 0xea, 0xda,
+	0x27, 0xdf, 0xf4, 0x17, 0xd2, 0xec, 0x0e, 0x22, 0x7f, 0x0b, 0x1e, 0xa7, 0xbd, 0x8a, 0xc3, 0xdb,
+	0x7a, 0x95, 0xd2, 0x9b, 0x43, 0xd9, 0x7b, 0x15, 0xfd, 0x43, 0x46, 0xda, 0x4e, 0x48, 0x36, 0x0b,
+	0xdb, 0x4d, 0x38, 0xce, 0xbb, 0x30, 0x3f, 0xe2, 0xf1, 0x4b, 0x16, 0x20, 0xc8, 0xaa, 0x7c, 0x2d,
+	0x5d, 0x7d, 0x84, 0x7d, 0x5d, 0x9f, 0xc7, 0x4c, 0x47, 0x8c, 0x9b, 0x7a, 0xcd, 0xc0, 0x9e, 0x9f,
+	0xc9, 0x05, 0xd7, 0xd1, 0xd1, 0x2a, 0xaf, 0xd8, 0x92, 0x41, 0x2d, 0x8c, 0x8f, 0x56, 0x60, 0x47,
+	0x72, 0xbd, 0xa3, 0x08, 0x69, 0x75, 0x10, 0xe1, 0xa5, 0x34, 0xc0, 0xa5, 0xd2, 0xc7, 0x90, 0x6c,
+	0x68, 0x81, 0xc3, 0xf0, 0x39, 0x0b, 0xed, 0xc3, 0x80, 0x68, 0x05, 0xb6, 0x03, 0x97, 0x93, 0x21,
+	0xd1, 0x0a, 0xef, 0x00, 0x6e, 0x4c, 0x8b, 0x7f, 0x56, 0xb8, 0x0f, 0xa3, 0xe0, 0x32, 0x83, 0xea,
+	0x82, 0xa9, 0xf6, 0x4c, 0x6e, 0xf3, 0xca, 0x26, 0x61, 0xb4, 0x9a, 0x15, 0xd8, 0xcc, 0x0c, 0x6c,
+	0x46, 0xa7, 0x59, 0x18, 0xc2, 0x08, 0x4f, 0xb3, 0x12, 0x6f, 0x16, 0x86, 0xf8, 0x3e, 0x85, 0x52,
+	0x98, 0x25, 0x1b, 0x6f, 0xfb, 0x65, 0x28, 0xec, 0xec, 0xee, 0x3d, 0xaa, 0x6f, 0x60, 0x7e, 0xbe,
+	0xf6, 0x4d, 0x16, 0xb2, 0x5b, 0x07, 0x64, 0x1d, 0x16, 0xe4, 0x5b, 0xe1, 0x39, 0xaf, 0xa9, 0xb5,
+	0xf3, 0x5e, 0x1d, 0xe9, 0x1c, 0xf9, 0x04, 0x72, 0xfc, 0xb5, 0x70, 0xea, 0x73, 0x6a, 0x6d, 0xfa,
+	0x8b, 0x23, 0x72, 0xb7, 0xa0, 0x6c, 0x3c, 0x0d, 0x92, 0x57, 0x3e, 0xa7, 0xd6, 0x5e, 0xfd, 0xec,
+	0x28, 0x65, 0x6a, 0xbd, 0x18, 0x24, 0x65, 0x8a, 0x9e, 0xb2, 0x92, 0x32, 0x19, 0x6f, 0x40, 0xc8,
+	0xbd, 0xa3, 0x9e, 0x24, 0xdb, 0x01, 0x79, 0x3b, 0xe5, 0xb1, 0xca, 0x7c, 0x8c, 0xa9, 0xdd, 0x9c,
+	0x4e, 0xa0, 0xf1, 0xd6, 0x76, 0x61, 0x41, 0x94, 0x5a, 0xc9, 0x3d, 0xfd, 0x51, 0x4b, 0x29, 0x79,
+	0x4f, 0x59, 0xee, 0x58, 0x91, 0x96, 0xce, 0xbd, 0x97, 0xf9, 0x61, 0x66, 0xed, 0x8f, 0x59, 0x58,
+	0x10, 0xb5, 0x2d, 0xf2, 0x39, 0x40, 0x54, 0x6e, 0x4c, 0x4a, 0x3b, 0x51, 0xf5, 0x4c, 0x4a, 0x3b,
+	0x59, 0xa9, 0x94, 0x16, 0x31, 0x4a, 0x7c, 0x24, 0x8d, 0x25, 0x76, 0x16, 0x26, 0x2d, 0x92, 0x52,
+	0x1f, 0x44, 0x54, 0x17, 0xaa, 0xf1, 0x6a, 0x1c, 0xb9, 0x95, 0xc2, 0x96, 0xac, 0x04, 0xd6, 0x6e,
+	0x9f, 0x4f, 0x14, 0x5b, 0x95, 0xaf, 0xb3, 0x68, 0x37, 0xf9, 0xff, 0x48, 0x68, 0xc2, 0x52, 0x58,
+	0xbb, 0x22, 0x37, 0xd2, 0x0a, 0x07, 0x51, 0x46, 0x55, 0x7b, 0x7b, 0xea, 0x78, 0x28, 0xfe, 0x63,
+	0xa8, 0x98, 0x65, 0x23, 0xf2, 0x4e, 0x6a, 0x2d, 0xc2, 0x2c, 0x57, 0xd5, 0xe8, 0x79, 0x24, 0x93,
+	0xc0, 0xb2, 0x92, 0x93, 0x0e, 0x1c, 0xab, 0x2e, 0xa5, 0x03, 0xc7, 0x0b, 0x41, 0x08, 0x8c, 0x9e,
+	0x11, 0x95, 0x62, 0x48, 0xaa, 0x8a, 0x46, 0xb9, 0x27, 0xe9, 0x19, 0x93, 0x55, 0x1c, 0xf4, 0xe3,
+	0xff, 0x66, 0xa1, 0xfc, 0xd0, 0xed, 0x0e, 0x02, 0x36, 0xe0, 0xd5, 0x7a, 0x1e, 0x3d, 0x44, 0xa0,
+	0x49, 0xba, 0xb3, 0x59, 0x8e, 0x48, 0xba, 0x73, 0xec, 0xae, 0x8e, 0x62, 0x36, 0x21, 0x2f, 0x6f,
+	0xbf, 0x24, 0x41, 0x18, 0xbb, 0x5a, 0xd7, 0xae, 0xa5, 0x0f, 0x9a, 0xda, 0x46, 0x25, 0x9b, 0xa4,
+	0xb6, 0x13, 0x65, 0xa1, 0xda, 0xcd, 0xe9, 0x04, 0x21, 0xe4, 0x4f, 0x60, 0x9e, 0xbf, 0x34, 0x92,
+	0x44, 0xa8, 0x30, 0x5e, 0x30, 0x6b, 0xb5, 0xb4, 0xa1, 0x10, 0xe0, 0x21, 0x14, 0xf5, 0x3b, 0x20,
+	0xb9, 0x9e, 0x90, 0x3f, 0xfe, 0xd0, 0x58, 0xbb, 0x31, 0x6d, 0x58, 0x83, 0xa1, 0x7b, 0xff, 0xbd,
+	0x04, 0xf3, 0xfc, 0x9c, 0xe0, 0xba, 0x46, 0x69, 0x64, 0x52, 0xd7, 0x89, 0xeb, 0x77, 0x52, 0xd7,
+	0xc9, 0x0c, 0x54, 0xee, 0x79, 0x23, 0x9b, 0x24, 0x29, 0x2c, 0xf1, 0x8b, 0x78, 0x72, 0xcf, 0xa7,
+	0xa4, 0xa2, 0xd2, 0xb7, 0xcd, 0xb4, 0x92, 0xa4, 0x30, 0x25, 0x2e, 0xe5, 0x49, 0xdf, 0x4e, 0xcb,
+	0x4a, 0x11, 0xf8, 0x11, 0x14, 0x54, 0x1e, 0x99, 0x26, 0x6a, 0xfc, 0x86, 0x9e, 0x26, 0x6a, 0x22,
+	0x09, 0x8d, 0x10, 0x31, 0xd7, 0x98, 0x86, 0x18, 0x5d, 0x91, 0xa6, 0x21, 0x1a, 0x89, 0x0a, 0x22,
+	0x3e, 0x01, 0x88, 0x32, 0xca, 0x64, 0xb0, 0x4b, 0xbd, 0x82, 0x27, 0x83, 0x5d, 0x7a, 0x52, 0x8a,
+	0xd0, 0x5f, 0x00, 0x99, 0x4c, 0x2e, 0xc9, 0xfb, 0xe9, 0xdc, 0xa9, 0x57, 0xf0, 0xda, 0x07, 0xaf,
+	0x47, 0x1c, 0x4e, 0x79, 0x00, 0xa5, 0x30, 0xef, 0x24, 0x74, 0x8a, 0xfe, 0xe6, 0x49, 0x73, 0xeb,
+	0x5c, 0x9a, 0xe4, 0x2a, 0xa9, 0xb3, 0x66, 0x0a, 0x53, 0xfc, 0xb8, 0xb9, 0x7d, 0x3e, 0x91, 0x69,
+	0x52, 0x95, 0x8b, 0xa6, 0x99, 0x34, 0x7e, 0xa9, 0x4e, 0x33, 0x69, 0x22, 0x91, 0x8d, 0x10, 0xa7,
+	0x38, 0x49, 0xfc, 0x1e, 0x3d, 0x0d, 0x71, 0xc2, 0x49, 0xa2, 0xac, 0x34, 0x4d, 0xfd, 0x89, 0x1b,
+	0x75, 0x9a, 0xfa, 0x93, 0x89, 0xad, 0xb4, 0x58, 0x98, 0xa0, 0xa6, 0x59, 0x2c, 0x79, 0xb9, 0xae,
+	0xdd, 0x3a, 0x97, 0x26, 0x29, 0xf2, 0x74, 0x8b, 0x4d, 0x5c, 0x96, 0xa7, 0x89, 0x9c, 0xb4, 0xd8,
+	0x7a, 0xe5, 0xab, 0x7f, 0xde, 0xc8, 0xfc, 0x0d, 0x7f, 0xfe, 0x81, 0x3f, 0x47, 0x79, 0xf1, 0x6f,
+	0xcb, 0x1f, 0xfd, 0x2f, 0x00, 0x00, 0xff, 0xff, 0xcf, 0x8c, 0x16, 0xf3, 0x1f, 0x2d, 0x00, 0x00,
 }

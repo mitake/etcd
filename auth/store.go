@@ -19,6 +19,7 @@ import (
 	"errors"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/coreos/etcd/auth/authpb"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
@@ -77,19 +78,23 @@ type AuthStore interface {
 	// RoleGrant grants a permission to a role
 	RoleGrant(r *pb.AuthRoleGrantRequest) (*pb.AuthRoleGrantResponse, error)
 
-	// TokenToUserID gets a UserID from the given Token
-	TokenToUserID(token string) (string, bool)
+	// TokenToUserName gets a username from the given Token
+	TokenToUserName(token string) (string, bool)
 
 	// IsPutPermitted checks put permission of the user
 	IsPutPermitted(userName string, key string) bool
 
 	// IsRangePermitted checks range permission of the user
 	IsRangePermitted(userName string, key string) bool
+
+	// IsAuthEnabled() checks authentication is enabled or not
+	IsAuthEnabled() bool
 }
 
 type authStore struct {
-	be      backend.Backend
-	enabled bool
+	be        backend.Backend
+	enabled   bool
+	enabledMu sync.Mutex
 }
 
 func (as *authStore) AuthEnable() {
@@ -102,7 +107,10 @@ func (as *authStore) AuthEnable() {
 	tx.Unlock()
 	b.ForceCommit()
 
+	as.enabledMu.Lock()
 	as.enabled = true
+	as.enabledMu.Unlock()
+
 	plog.Noticef("Authentication enabled")
 }
 
@@ -116,7 +124,10 @@ func (as *authStore) AuthDisable() {
 	tx.Unlock()
 	b.ForceCommit()
 
+	as.enabledMu.Lock()
 	as.enabled = false
+	as.enabledMu.Unlock()
+
 	plog.Noticef("Authentication disabled")
 }
 
@@ -311,7 +322,7 @@ func (as *authStore) RoleAdd(r *pb.AuthRoleAddRequest) (*pb.AuthRoleAddResponse,
 	return &pb.AuthRoleAddResponse{}, nil
 }
 
-func (as *authStore) TokenToUserID(token string) (string, bool) {
+func (as *authStore) TokenToUserName(token string) (string, bool) {
 	t, ok := simpleTokens[token]
 	return t, ok
 }
@@ -379,7 +390,8 @@ func (as *authStore) RoleGrant(r *pb.AuthRoleGrantRequest) (*pb.AuthRoleGrantRes
 }
 
 func (as *authStore) isOpPermitted(userName string, key string, write bool, read bool) bool {
-	if !as.enabled {
+	// TODO(mitake): this function would be costly so we need a caching mechanism
+	if !as.IsAuthEnabled() {
 		return true
 	}
 
@@ -420,11 +432,11 @@ func (as *authStore) isOpPermitted(userName string, key string, write bool, read
 					return true
 				}
 
-				if write && perm.PermType == authpb.WRITE {
+				if write && !read && perm.PermType == authpb.WRITE {
 					return true
 				}
 
-				if read && perm.PermType == authpb.READ {
+				if read && !write && perm.PermType == authpb.READ {
 					return true
 				}
 			}
@@ -440,6 +452,12 @@ func (as *authStore) IsPutPermitted(userName string, key string) bool {
 
 func (as *authStore) IsRangePermitted(userName string, key string) bool {
 	return as.isOpPermitted(userName, key, false, true)
+}
+
+func (as *authStore) IsAuthEnabled() bool {
+	as.enabledMu.Lock()
+	defer as.enabledMu.Unlock()
+	return as.enabled
 }
 
 func NewAuthStore(be backend.Backend) *authStore {

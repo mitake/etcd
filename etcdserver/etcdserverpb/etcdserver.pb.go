@@ -15,6 +15,7 @@
 		Metadata
 		InternalRaftRequest
 		EmptyResponse
+		RequestHeader
 		ResponseHeader
 		RangeRequest
 		RangeResponse

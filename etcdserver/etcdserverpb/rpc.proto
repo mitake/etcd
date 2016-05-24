@@ -137,6 +137,11 @@ service Auth {
   rpc RoleRevoke(AuthRoleRevokeRequest) returns (AuthRoleRevokeResponse) {}
 }
 
+message RequestHeader {
+  // username is a username that is associated with gRPC connection
+  string username = 1;
+}
+
 message ResponseHeader {
   // cluster_id is the ID of the cluster which sent the response.
   uint64 cluster_id = 1;
@@ -149,6 +154,8 @@ message ResponseHeader {
 }
 
 message RangeRequest {
+  RequestHeader header = 1;
+
   enum SortOrder {
 	NONE = 0; // default, no sorting
 	ASCEND = 1; // lowest target value first
@@ -163,22 +170,22 @@ message RangeRequest {
   }
 
   // key is the first key for the range. If range_end is not given, the request only looks up key.
-  bytes key = 1;
+  bytes key = 2;
   // range_end is the upper bound on the requested range [key, range_end).
   // If range_end is '\0', the range is all keys >= key.
-  bytes range_end = 2;
+  bytes range_end = 3;
   // limit is a limit on the number of keys returned for the request.
-  int64 limit = 3;
+  int64 limit = 4;
   // revision is the point-in-time of the key-value store to use for the range.
   // If revision is less or equal to zero, the range is over the newest key-value store.
   // If the revision has been compacted, ErrCompaction is returned as a response.
-  int64 revision = 4;
+  int64 revision = 5;
 
   // sort_order is the order for returned sorted results.
-  SortOrder sort_order = 5;
+  SortOrder sort_order = 6;
 
   // sort_target is the key-value field to use for sorting.
-  SortTarget sort_target = 6;
+  SortTarget sort_target = 7;
 
   // serializable sets the range request to use serializable member-local reads.
   // Range requests are linearizable by default; linearizable requests have higher
@@ -186,7 +193,7 @@ message RangeRequest {
   // consensus of the cluster. For better performance, in exchange for possible stale reads,
   // a serializable range request is served locally without needing to reach consensus
   // with other nodes in the cluster.
-  bool serializable = 7;
+  bool serializable = 8;
 }
 
 message RangeResponse {
@@ -198,13 +205,15 @@ message RangeResponse {
 }
 
 message PutRequest {
+  RequestHeader header = 1;
+
   // key is the key, in bytes, to put into the key-value store.
-  bytes key = 1;
+  bytes key = 2;
   // value is the value, in bytes, to associate with the key in the key-value store.
-  bytes value = 2;
+  bytes value = 3;
   // lease is the lease ID to associate with the key in the key-value store. A lease
   // value of 0 indicates no lease.
-  int64 lease = 3;
+  int64 lease = 4;
 }
 
 message PutResponse {
@@ -212,12 +221,14 @@ message PutResponse {
 }
 
 message DeleteRangeRequest {
+  RequestHeader header = 1;
+
   // key is the first key to delete in the range.
-  bytes key = 1;
+  bytes key = 2;
   // range_end is the key following the last key to delete for the range [key, range_end).
   // If range_end is not given, the range is defined to contain only the key argument.
   // If range_end is '\0', the range is all keys greater than or equal to the key argument.
-  bytes range_end = 2;
+  bytes range_end = 3;
 }
 
 message DeleteRangeResponse {
@@ -290,16 +301,18 @@ message Compare {
 // true.
 // 3. A list of database operations called f op. Like t op, but executed if guard evaluates to false.
 message TxnRequest {
+  RequestHeader header = 1;
+
   // compare is a list of predicates representing a conjunction of terms.
   // If the comparisons succeed, then the success requests will be processed in order,
   // and the response will contain their respective responses in order.
   // If the comparisons fail, then the failure requests will be processed in order,
   // and the response will contain their respective responses in order.
-  repeated Compare compare = 1;
+  repeated Compare compare = 2;
   // success is a list of requests which will be applied when compare evaluates to true.
-  repeated RequestUnion success = 2;
+  repeated RequestUnion success = 3;
   // failure is a list of requests which will be applied when compare evaluates to false.
-  repeated RequestUnion failure = 3;
+  repeated RequestUnion failure = 4;
 }
 
 message TxnResponse {
@@ -314,12 +327,14 @@ message TxnResponse {
 // CompactionRequest compacts the key-value store up to a given revision. All superseded keys
 // with a revision less than the compaction revision will be removed.
 message CompactionRequest {
+  RequestHeader header = 1;
+
   // revision is the key-value store revision for the compaction operation. 
-  int64 revision = 1;
+  int64 revision = 2;
   // physical is set so the RPC will wait until the compaction is physically
   // applied to the local database such that compacted entries are totally
   // removed from the backend database.
-  bool physical = 2;
+  bool physical = 3;
 }
 
 message CompactionResponse {
@@ -327,6 +342,7 @@ message CompactionResponse {
 }
 
 message HashRequest {
+  RequestHeader header = 1;
 }
 
 message HashResponse {
@@ -336,6 +352,7 @@ message HashResponse {
 }
 
 message SnapshotRequest {
+  RequestHeader header = 1;
 }
 
 message SnapshotResponse {
@@ -351,32 +368,38 @@ message SnapshotResponse {
 }
 
 message WatchRequest {
+  RequestHeader header = 1;
+
   // request_union is a request to either create a new watcher or cancel an existing watcher.
   oneof request_union {
-    WatchCreateRequest create_request = 1;
-    WatchCancelRequest cancel_request = 2;
+    WatchCreateRequest create_request = 2;
+    WatchCancelRequest cancel_request = 3;
   }
 }
 
 message WatchCreateRequest {
+  RequestHeader header = 1;
+
   // key is the key to register for watching.
-  bytes key = 1;
+  bytes key = 2;
   // range_end is the end of the range [key, range_end) to watch. If range_end is not given,
   // only the key argument is watched. If range_end is equal to '\0', all keys greater than
   // or equal to the key argument are watched.
-  bytes range_end = 2;
+  bytes range_end = 3;
   // start_revision is an optional revision to watch from (inclusive). No start_revision is "now".
-  int64 start_revision = 3;
+  int64 start_revision = 4;
   // progress_notify is set so that the etcd server will periodically send a WatchResponse with
   // no events to the new watcher if there are no recent events. It is useful when clients
   // wish to recover a disconnected watcher starting from a recent known revision.
   // The etcd server may decide how often it will send notifications based on current load.
-  bool progress_notify = 4;
+  bool progress_notify = 5;
 }
 
 message WatchCancelRequest {
+  RequestHeader header = 1;
+
   // watch_id is the watcher id to cancel so that no more events are transmitted.
-  int64 watch_id = 1;
+  int64 watch_id = 2;
 }
 
 message WatchResponse {
@@ -405,10 +428,12 @@ message WatchResponse {
 }
 
 message LeaseGrantRequest {
+  RequestHeader header = 1;
+
   // TTL is the advisory time-to-live in seconds.
-  int64 TTL = 1;
+  int64 TTL = 2;
   // ID is the requested ID for the lease. If ID is set to 0, the lessor chooses an ID.
-  int64 ID = 2;
+  int64 ID = 3;
 }
 
 message LeaseGrantResponse {
@@ -421,8 +446,10 @@ message LeaseGrantResponse {
 }
 
 message LeaseRevokeRequest {
+  RequestHeader header = 1;
+
   // ID is the lease ID to revoke. When the ID is revoked, all associated keys will be deleted.
-  int64 ID = 1;
+  int64 ID = 2;
 }
 
 message LeaseRevokeResponse {
@@ -430,8 +457,10 @@ message LeaseRevokeResponse {
 }
 
 message LeaseKeepAliveRequest {
+  RequestHeader header = 1;
+
   // ID is the lease ID for the lease to keep alive.
-  int64 ID = 1;
+  int64 ID = 2;
 }
 
 message LeaseKeepAliveResponse {
@@ -454,8 +483,10 @@ message Member {
 }
 
 message MemberAddRequest {
+  RequestHeader header = 1;
+
   // peerURLs is the list of URLs the added member will use to communicate with the cluster.
-  repeated string peerURLs = 1;
+  repeated string peerURLs = 2;
 }
 
 message MemberAddResponse {
@@ -465,8 +496,10 @@ message MemberAddResponse {
 }
 
 message MemberRemoveRequest {
+  RequestHeader header = 1;
+
   // ID is the member ID of the member to remove.
-  uint64 ID = 1;
+  uint64 ID = 2;
 }
 
 message MemberRemoveResponse {
@@ -474,10 +507,12 @@ message MemberRemoveResponse {
 }
 
 message MemberUpdateRequest {
+  RequestHeader header = 1;
+
   // ID is the member ID of the member to update.
-  uint64 ID = 1;
+  uint64 ID = 2;
   // peerURLs is the new list of URLs the member will use to communicate with the cluster.
-  repeated string peerURLs = 2;
+  repeated string peerURLs = 3;
 }
 
 message MemberUpdateResponse{
@@ -485,6 +520,7 @@ message MemberUpdateResponse{
 }
 
 message MemberListRequest {
+  RequestHeader header = 1;
 }
 
 message MemberListResponse {
@@ -494,6 +530,7 @@ message MemberListResponse {
 }
 
 message DefragmentRequest {
+  RequestHeader header = 1;
 }
 
 message DefragmentResponse {
@@ -506,6 +543,8 @@ enum AlarmType {
 }
 
 message AlarmRequest {
+  RequestHeader header = 1;
+
   enum AlarmAction {
 	GET = 0;
 	ACTIVATE = 1;
@@ -514,12 +553,12 @@ message AlarmRequest {
   // action is the kind of alarm request to issue. The action
   // may GET alarm statuses, ACTIVATE an alarm, or DEACTIVATE a
   // raised alarm.
-  AlarmAction action = 1;
+  AlarmAction action = 2;
   // memberID is the ID of the member associated with the alarm. If memberID is 0, the
   // alarm request covers all members.
-  uint64 memberID = 2;
+  uint64 memberID = 3;
   // alarm is the type of alarm to consider for this request.
-  AlarmType alarm = 3;
+  AlarmType alarm = 4;
 }
 
 message AlarmMember {
@@ -536,10 +575,12 @@ message AlarmResponse {
 }
 
 message StatusRequest {
+  RequestHeader header = 1;
 }
 
 message StatusResponse {
   ResponseHeader header = 1;
+
   // version is the cluster protocol version used by the responding member.
   string version = 2;
   // dbSize is the size of the backend database, in bytes, of the responding member.
@@ -553,65 +594,84 @@ message StatusResponse {
 }
 
 message AuthEnableRequest {
+  RequestHeader header = 1;
 }
 
 message AuthDisableRequest {
+  RequestHeader header = 1;
 }
 
 message AuthenticateRequest {
+  // Authenticate() doesn't require the header because the auth metadata cannot be constructed before this RPC call
   string name = 1;
   string password = 2;
 }
 
 message AuthUserAddRequest {
-  string name = 1;
-  string password = 2;
+  RequestHeader header = 1;
+  string name = 2;
+  string password = 3;
 }
 
 message AuthUserGetRequest {
+  RequestHeader header = 1;
 }
 
 message AuthUserDeleteRequest {
+  RequestHeader header = 1;
+
   // name is the name of the user to delete.
-  string name = 1;
+  string name = 2;
 }
 
 message AuthUserChangePasswordRequest {
+  RequestHeader header = 1;
+
   // name is the name of the user whose password is being changed.
-  string name = 1;
+  string name = 2;
   // password is the new password for the user.
-  string password = 2;
+  string password = 3;
 }
 
 message AuthUserGrantRequest {
+  RequestHeader header = 1;
+
   // user is the name of the user which should be granted a given role.
-  string user = 1;
+  string user = 2;
   // role is the name of the role to grant to the user.
-  string role = 2;
+  string role = 3;
 }
 
 message AuthUserRevokeRequest {
+  RequestHeader header = 1;
 }
 
 message AuthRoleAddRequest {
+  RequestHeader header = 1;
+
   // name is the name of the role to add to the authentication system.
-  string name = 1;
+  string name = 2;
 }
 
 message AuthRoleGetRequest {
+  RequestHeader header = 1;
 }
 
 message AuthRoleDeleteRequest {
+  RequestHeader header = 1;
 }
 
 message AuthRoleGrantRequest {
+  RequestHeader header = 1;
+
   // name is the name of the role which will be granted the permission.
-  string name = 1;
+  string name = 2;
   // perm is the permission to grant to the role.
-  authpb.Permission perm = 2;
+  authpb.Permission perm = 3;
 }
 
 message AuthRoleRevokeRequest {
+  RequestHeader header = 1;
 }
 
 message AuthEnableResponse {

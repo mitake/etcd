@@ -330,22 +330,26 @@ func (s *EtcdServer) RoleGrant(ctx context.Context, r *pb.AuthRoleGrantRequest) 
 	return result.resp.(*pb.AuthRoleGrantResponse), nil
 }
 
-func (s *EtcdServer) processInternalRaftRequest(ctx context.Context, r pb.InternalRaftRequest) (*applyResult, error) {
-	// assume ctx is from gRPC callback
+func (s *EtcdServer) makeRequestHeader(ctx context.Context) (*pb.RequestHeader, error) {
 	md, mdexist := metadata.FromContext(ctx)
 	if mdexist {
 		token, texist := md["token"]
 		if texist {
-			userID, uexist := s.AuthStore().TokenToUserID(token[0])
-			if uexist {
-				r.UserID = userID
-			} else {
-				plog.Warningf("invalid token: %s", token[0])
-				return nil, ErrInvalidToken
+			username, uexist := s.AuthStore().TokenToUserName(token[0])
+			if !uexist {
+				plog.Warningf("invalid auth token: %s", token[0])
+				return nil, ErrInvalidAuthToken
 			}
+
+			return &pb.RequestHeader{Username: username}, nil
 		}
 	}
 
+	plog.Warningf("invalid gRPC context, a member \"token\" is missing")
+	return nil, ErrInvalidAuthToken
+}
+
+func (s *EtcdServer) processInternalRaftRequest(ctx context.Context, r pb.InternalRaftRequest) (*applyResult, error) {
 	r.ID = s.reqIDGen.Next()
 
 	data, err := r.Marshal()
