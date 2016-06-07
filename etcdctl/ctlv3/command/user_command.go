@@ -33,7 +33,7 @@ func NewUserCommand() *cobra.Command {
 	ac.AddCommand(newUserAddCommand())
 	ac.AddCommand(newUserDeleteCommand())
 	ac.AddCommand(newUserChangePasswordCommand())
-	ac.AddCommand(newUserGrantCommand())
+	ac.AddCommand(newUserGrantRoleCommand())
 	ac.AddCommand(newUserGetCommand())
 	ac.AddCommand(newUserRevokeRoleCommand())
 
@@ -76,11 +76,11 @@ func newUserChangePasswordCommand() *cobra.Command {
 	return &cmd
 }
 
-func newUserGrantCommand() *cobra.Command {
+func newUserGrantRoleCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "grant <user name> <role name>",
+		Use:   "grant-role <user name> <role name>",
 		Short: "grant a role to a user",
-		Run:   userGrantCommandFunc,
+		Run:   userGrantRoleCommandFunc,
 	}
 }
 
@@ -159,13 +159,13 @@ func userChangePasswordCommandFunc(cmd *cobra.Command, args []string) {
 	fmt.Println("Password updated")
 }
 
-// userGrantCommandFunc executes the "user grant" command.
-func userGrantCommandFunc(cmd *cobra.Command, args []string) {
+// userGrantRoleCommandFunc executes the "user grant" command.
+func userGrantRoleCommandFunc(cmd *cobra.Command, args []string) {
 	if len(args) != 2 {
 		ExitWithError(ExitBadArgs, fmt.Errorf("user grant command requires user name and role name as its argument."))
 	}
 
-	_, err := mustClientFromCmd(cmd).Auth.UserGrant(context.TODO(), args[0], args[1])
+	_, err := mustClientFromCmd(cmd).Auth.UserGrantRole(context.TODO(), args[0], args[1])
 	if err != nil {
 		ExitWithError(ExitError, err)
 	}

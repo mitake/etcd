@@ -30,7 +30,7 @@ func NewRoleCommand() *cobra.Command {
 	}
 
 	ac.AddCommand(newRoleAddCommand())
-	ac.AddCommand(newRoleGrantCommand())
+	ac.AddCommand(newRoleGrantPermissionCommand())
 	ac.AddCommand(newRoleGetCommand())
 	ac.AddCommand(newRoleRevokePermissionCommand())
 	ac.AddCommand(newRoleDeleteCommand())
@@ -46,11 +46,11 @@ func newRoleAddCommand() *cobra.Command {
 	}
 }
 
-func newRoleGrantCommand() *cobra.Command {
+func newRoleGrantPermissionCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "grant <role name> <permission type> <key>",
-		Short: "grant a key to a role",
-		Run:   roleGrantCommandFunc,
+		Use:   "grant-permission <role name> <permission type> <key>",
+		Short: "grant a key permission to a role",
+		Run:   roleGrantPermissionCommandFunc,
 	}
 }
 
@@ -92,8 +92,8 @@ func roleAddCommandFunc(cmd *cobra.Command, args []string) {
 	fmt.Printf("Role %s created\n", args[0])
 }
 
-// roleGrantCommandFunc executes the "role grant" command.
-func roleGrantCommandFunc(cmd *cobra.Command, args []string) {
+// roleGrantPermissionCommandFunc executes the "role grant" command.
+func roleGrantPermissionCommandFunc(cmd *cobra.Command, args []string) {
 	if len(args) != 3 {
 		ExitWithError(ExitBadArgs, fmt.Errorf("role grant command requires role name, permission type, and key as its argument."))
 	}
@@ -103,7 +103,7 @@ func roleGrantCommandFunc(cmd *cobra.Command, args []string) {
 		ExitWithError(ExitBadArgs, err)
 	}
 
-	_, err = mustClientFromCmd(cmd).Auth.RoleGrant(context.TODO(), args[0], args[2], perm)
+	_, err = mustClientFromCmd(cmd).Auth.RoleGrantPermission(context.TODO(), args[0], args[2], perm)
 	if err != nil {
 		ExitWithError(ExitError, err)
 	}
