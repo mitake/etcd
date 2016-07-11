@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/pkg/fileutil"
 	"github.com/coreos/etcd/pkg/pbutil"
 	"github.com/coreos/etcd/raft"
@@ -81,6 +82,8 @@ type WAL struct {
 
 	locks []*fileutil.LockedFile // the locked files the WAL holds (the name is increasing)
 	fp    *filePipeline
+
+	pendingEnts []raftpb.Entry
 }
 
 // Create creates a WAL ready for appending records. The given metadata is
@@ -510,7 +513,20 @@ func (w *WAL) Save(st raftpb.HardState, ents []raftpb.Entry) error {
 		return nil
 	}
 
-	mustSync := mustSync(st, w.state, len(ents))
+	mustSync := mustSync(st, w.state, ents)
+	if !mustSync && len(ents) != 0 {
+		// ents don't have side effects
+		w.pendingEnts = append(w.pendingEnts, ents...)
+		return nil
+	}
+
+	for i := range w.pendingEnts {
+		if err := w.saveEntry(&w.pendingEnts[i]); err != nil {
+			return err
+		}
+	}
+
+	w.pendingEnts = make([]raftpb.Entry, 0)
 
 	// TODO(xiangli): no more reference operator
 	for i := range ents {
@@ -576,13 +592,53 @@ func (w *WAL) seq() uint64 {
 	return seq
 }
 
-func mustSync(st, prevst raftpb.HardState, entsnum int) bool {
+func hasSideEffect(ents []raftpb.Entry) bool {
+	// checking log entries have side effect or not in wal is tricky
+	// because the content of the log entries are basically uninterpreted
+	// byte sequence from Raft
+
+	for _, e := range ents {
+		var raftReq etcdserverpb.InternalRaftRequest
+
+		if !pbutil.MaybeUnmarshal(&raftReq, e.Data) {
+			var r etcdserverpb.Request
+
+			pbutil.MustUnmarshal(&r, e.Data)
+			if r.Method != "GET" && r.Method != "QGET" {
+				return true
+			}
+
+			continue
+		}
+
+		if raftReq.V2 != nil {
+			if raftReq.V2.Method != "GET" && raftReq.V2.Method != "QGET" {
+				return true
+			}
+
+			continue
+		}
+
+		if raftReq.Range == nil && raftReq.AuthUserGet == nil && raftReq.AuthRoleGet == nil {
+			// TODO(mitake): read only transaction
+			return true
+		}
+	}
+
+	return false
+}
+
+func mustSync(st, prevst raftpb.HardState, ents []raftpb.Entry) bool {
 	// Persistent state on all servers:
 	// (Updated on stable storage before responding to RPCs)
 	// currentTerm
 	// votedFor
 	// log entries[]
-	return entsnum != 0 || st.Vote != prevst.Vote || st.Term != prevst.Term
+	if !raft.IsEmptyHardState(st) && (st.Vote != prevst.Vote || st.Term != prevst.Term) {
+		return true
+	}
+
+	return hasSideEffect(ents)
 }
 
 func closeAll(rcs ...io.ReadCloser) error {
