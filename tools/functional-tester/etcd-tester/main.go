@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/coreos/pkg/capnslog"
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,6 +38,8 @@ func main() {
 	schedCases := flag.String("schedule-cases", "", "test case schedule")
 	consistencyCheck := flag.Bool("consistency-check", true, "true to check consistency (revision, hash)")
 	isV2Only := flag.Bool("v2-only", false, "'true' to run V2 only tester.")
+	noFailure := flag.Bool("no-failure", false, "'true' to not inject failures.")
+	noFailureInterval := flag.Int("no-failure-interval", 10, "interval for no failure mode in seconds.")
 	flag.Parse()
 
 	c := &cluster{
@@ -52,27 +55,32 @@ func main() {
 	}
 	defer c.Terminate()
 
-	failures := []failure{
-		newFailureKillAll(),
-		newFailureKillMajority(),
-		newFailureKillOne(),
-		newFailureKillLeader(),
-		newFailureKillOneForLongTime(),
-		newFailureKillLeaderForLongTime(),
-		newFailureIsolate(),
-		newFailureIsolateAll(),
-		newFailureSlowNetworkOneMember(),
-		newFailureSlowNetworkLeader(),
-		newFailureSlowNetworkAll(),
-	}
-
 	// ensure cluster is fully booted to know failpoints are available
 	c.WaitHealth()
-	fpFailures, fperr := failpointFailures(c)
-	if len(fpFailures) == 0 {
-		plog.Infof("no failpoints found (%v)", fperr)
+
+	var failures []failure
+
+	if !*noFailure {
+		failures = []failure{
+			newFailureKillAll(),
+			newFailureKillMajority(),
+			newFailureKillOne(),
+			newFailureKillLeader(),
+			newFailureKillOneForLongTime(),
+			newFailureKillLeaderForLongTime(),
+			newFailureIsolate(),
+			newFailureIsolateAll(),
+			newFailureSlowNetworkOneMember(),
+			newFailureSlowNetworkLeader(),
+			newFailureSlowNetworkAll(),
+		}
+
+		fpFailures, fperr := failpointFailures(c)
+		if len(fpFailures) == 0 {
+			plog.Infof("no failpoints found (%v)", fperr)
+		}
+		failures = append(failures, fpFailures...)
 	}
-	failures = append(failures, fpFailures...)
 
 	schedule := failures
 	if schedCases != nil && *schedCases != "" {
@@ -89,10 +97,11 @@ func main() {
 	}
 
 	t := &tester{
-		failures:         schedule,
-		cluster:          c,
-		limit:            *limit,
-		consistencyCheck: *consistencyCheck,
+		failures:          schedule,
+		cluster:           c,
+		limit:             *limit,
+		consistencyCheck:  *consistencyCheck,
+		noFailureInterval: time.Duration(*noFailureInterval) * time.Second,
 	}
 
 	sh := statusHandler{status: &t.status}
