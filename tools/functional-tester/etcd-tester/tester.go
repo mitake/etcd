@@ -59,15 +59,7 @@ func (tt *tester) runLoop() {
 				continue
 			}
 		} else {
-			if ok, err := tt.doRoundNoFailure(round); !ok {
-				if err != nil {
-					if tt.cleanup() != nil {
-						return
-					}
-				}
-				prevCompactRev = 0 // reset after clean up
-				continue
-			}
+			time.Sleep(tt.noFailureInterval)
 		}
 		// -1 so that logPrefix doesn't print out 'case'
 		tt.status.setCase(-1)
@@ -136,27 +128,12 @@ func (tt *tester) doRound(round int) (bool, error) {
 			continue
 		}
 
-		if err := tt.checkConsistency(); err != nil {
+		if err := tt.checkConsistency(true); err != nil {
 			plog.Warningf("%s functional-tester returning with tt.checkConsistency error (%v)", tt.logPrefix(), err)
 			return false, err
 		}
 		plog.Printf("%s succeed!", tt.logPrefix())
 	}
-	return true, nil
-}
-
-func (tt *tester) doRoundNoFailure(round int) (bool, error) {
-	time.Sleep(tt.noFailureInterval)
-
-	if !tt.consistencyCheck {
-		return true, nil
-	}
-
-	if err := tt.checkConsistency(); err != nil {
-		plog.Warningf("%s functional-tester returning with tt.checkConsistency error (%v)", tt.logPrefix(), err)
-		return false, err
-	}
-
 	return true, nil
 }
 
@@ -169,13 +146,15 @@ func (tt *tester) updateRevision() error {
 	return err
 }
 
-func (tt *tester) checkConsistency() (err error) {
-	tt.cancelStressers()
-	defer func() {
-		if err == nil {
-			err = tt.startStressers()
-		}
-	}()
+func (tt *tester) checkConsistency(stresser bool) (err error) {
+	if stresser {
+		tt.cancelStressers()
+		defer func() {
+			if err == nil {
+				err = tt.startStressers()
+			}
+		}()
+	}
 
 	plog.Printf("%s updating current revisions...", tt.logPrefix())
 	var (

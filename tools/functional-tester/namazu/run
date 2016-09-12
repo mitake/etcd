@@ -1,0 +1,9 @@
+#!/bin/sh -e
+set -x
+set -e
+
+# run cluster and tester (assumption - agents'll get first ip addresses)
+docker-compose -f tools/functional-tester/docker/docker-compose-namazu.yml up -d a1 a2 a3
+
+# run tester
+docker-compose -f tools/functional-tester/docker/docker-compose-namazu.yml run tester

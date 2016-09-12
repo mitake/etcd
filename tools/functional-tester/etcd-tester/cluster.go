@@ -53,7 +53,7 @@ type ClusterStatus struct {
 	AgentStatuses map[string]client.Status
 }
 
-func (c *cluster) bootstrap(agentEndpoints []string) error {
+func (c *cluster) bootstrap(agentEndpoints []string, needStresser bool) error {
 	size := len(agentEndpoints)
 
 	members := make([]*member, size)
@@ -96,32 +96,33 @@ func (c *cluster) bootstrap(agentEndpoints []string) error {
 		}
 	}
 
-	// TODO: Too intensive stressers can panic etcd member with
-	// 'out of memory' error. Put rate limits in server side.
-	stressN := 100
-	c.Stressers = make([]Stresser, len(members))
-	limiter := rate.NewLimiter(rate.Limit(c.stressQPS), c.stressQPS)
-	for i, m := range members {
-		if c.v2Only {
-			c.Stressers[i] = &stresserV2{
-				Endpoint:       m.ClientURL,
-				keySize:        c.stressKeySize,
-				keySuffixRange: c.stressKeySuffixRange,
-				N:              stressN,
+	if needStresser {
+		// TODO: Too intensive stressers can panic etcd member with
+		// 'out of memory' error. Put rate limits in server side.
+		stressN := 100
+		c.Stressers = make([]Stresser, len(members))
+		limiter := rate.NewLimiter(rate.Limit(c.stressQPS), c.stressQPS)
+		for i, m := range members {
+			if c.v2Only {
+				c.Stressers[i] = &stresserV2{
+					Endpoint:       m.ClientURL,
+					keySize:        c.stressKeySize,
+					keySuffixRange: c.stressKeySuffixRange,
+					N:              stressN,
+				}
+			} else {
+				c.Stressers[i] = &stresser{
+					Endpoint:       m.grpcAddr(),
+					keyLargeSize:   c.stressKeyLargeSize,
+					keySize:        c.stressKeySize,
+					keySuffixRange: c.stressKeySuffixRange,
+					N:              stressN,
+					rateLimiter:    limiter,
+				}
 			}
-		} else {
-			c.Stressers[i] = &stresser{
-				Endpoint:       m.grpcAddr(),
-				keyLargeSize:   c.stressKeyLargeSize,
-				keySize:        c.stressKeySize,
-				keySuffixRange: c.stressKeySuffixRange,
-				N:              stressN,
-				rateLimiter:    limiter,
-			}
+			go c.Stressers[i].Stress()
 		}
-		go c.Stressers[i].Stress()
 	}
-
 	c.Size = size
 	c.Members = members
 	return nil
@@ -132,7 +133,7 @@ func (c *cluster) Reset() error {
 	for i, m := range c.Members {
 		eps[i] = m.Endpoint
 	}
-	return c.bootstrap(eps)
+	return c.bootstrap(eps, true)
 }
 
 func (c *cluster) WaitHealth() error {

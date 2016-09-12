@@ -1,0 +1,8 @@
+#!/bin/sh -e
+set -x
+set -e
+
+# check consistency
+
+# run tester
+docker-compose -f tools/functional-tester/docker/docker-compose-namazu.yml run checker

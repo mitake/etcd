@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -40,6 +41,8 @@ func main() {
 	isV2Only := flag.Bool("v2-only", false, "'true' to run V2 only tester.")
 	noFailure := flag.Bool("no-failure", false, "'true' to not inject failures.")
 	noFailureInterval := flag.Int("no-failure-interval", 10, "interval for no failure mode in seconds.")
+	checkOnly := flag.Bool("check-only", false, "'true' to check consistency only.")
+	terminateAgents := flag.Bool("terminate-agents", true, "'true' to not terminate agents at the end of the tester command.")
 	flag.Parse()
 
 	c := &cluster{
@@ -50,10 +53,14 @@ func main() {
 		stressKeySize:        int(*stressKeySize),
 		stressKeySuffixRange: int(*stressKeySuffixRange),
 	}
-	if err := c.bootstrap(strings.Split(*endpointStr, ",")); err != nil {
+
+	if err := c.bootstrap(strings.Split(*endpointStr, ","), !*checkOnly); err != nil {
 		plog.Fatal(err)
 	}
-	defer c.Terminate()
+
+	if *terminateAgents {
+		defer c.Terminate()
+	}
 
 	// ensure cluster is fully booted to know failpoints are available
 	c.WaitHealth()
@@ -102,6 +109,16 @@ func main() {
 		limit:             *limit,
 		consistencyCheck:  *consistencyCheck,
 		noFailureInterval: time.Duration(*noFailureInterval) * time.Second,
+	}
+
+	if *checkOnly {
+		err := t.checkConsistency(false)
+		if err != nil {
+			plog.Errorf("checking consistency failed: %s", err)
+			os.Exit(1)
+		}
+
+		os.Exit(0)
 	}
 
 	sh := statusHandler{status: &t.status}
