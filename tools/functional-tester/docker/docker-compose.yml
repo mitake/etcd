@@ -25,4 +25,7 @@ tester:
     - "1"
     - -stress-key-size
     - "1"
-      
+    - -failures
+    - ""
+    - -external-failures
+    - "/dummy.sh"
