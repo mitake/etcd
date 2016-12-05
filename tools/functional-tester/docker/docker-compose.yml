@@ -3,18 +3,26 @@ a1:
   build: .
   privileged: true
   net: etcd-functional
+  ports:
+    - "10001:9027"
 a2:
   build: .
   privileged: true
   net: etcd-functional
+  ports:
+    - "10002:9027"
 a3:
   build: .
   privileged: true
   net: etcd-functional
+  ports:
+    - "10003:9027"
 tester:
   build: .
   privileged: true
   net: etcd-functional
+  ports:
+    - "10004:9028"
   command:
     - /etcd-tester
     - -agent-endpoints

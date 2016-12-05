@@ -20,4 +20,4 @@ docker network ls | grep etcd-functional || docker network create --subnet 172.2
 docker-compose -f tools/functional-tester/docker/docker-compose.yml up -d a1 a2 a3
 
 # 6. run tester
-docker-compose -f tools/functional-tester/docker/docker-compose.yml run tester
+docker-compose -f tools/functional-tester/docker/docker-compose.yml run --service-ports tester
