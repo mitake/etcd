@@ -1,0 +1,3 @@
+# explorePolicy = "dumb"
+skipInitOrchestrator = false
+restPort = 10080
