@@ -893,8 +893,20 @@ func (s *EtcdServer) applyEntries(ep *etcdProgress, apply *apply) {
 	}
 }
 
+func (s *EtcdServer) shouldTriggerSnapshot(ep *etcdProgress) bool {
+	if s.snapCount < ep.appliedi-ep.snapi {
+		return true
+	}
+
+	if s.r.raftStorage.ShouldCompactBySize(1024) {
+		return true
+	}
+
+	return false
+}
+
 func (s *EtcdServer) triggerSnapshot(ep *etcdProgress) {
-	if ep.appliedi-ep.snapi <= s.snapCount {
+	if !s.shouldTriggerSnapshot(ep) {
 		return
 	}
 

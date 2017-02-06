@@ -81,6 +81,8 @@ type MemoryStorage struct {
 	snapshot  pb.Snapshot
 	// ents[i] has raft log position i+snapshot.Metadata.Index
 	ents []pb.Entry
+	// entSize has a total size of Data of ents
+	entsSize uint64
 }
 
 // NewMemoryStorage creates an empty MemoryStorage.
@@ -230,6 +232,7 @@ func (ms *MemoryStorage) Compact(compactIndex uint64) error {
 	ents[0].Term = ms.ents[i].Term
 	ents = append(ents, ms.ents[i+1:]...)
 	ms.ents = ents
+	ms.entsSize = sizeOfEntries(ms.ents)
 	return nil
 }
 
@@ -267,5 +270,18 @@ func (ms *MemoryStorage) Append(entries []pb.Entry) error {
 		raftLogger.Panicf("missing log entry [last: %d, append at: %d]",
 			ms.lastIndex(), entries[0].Index)
 	}
+
+	ms.entsSize += sizeOfEntries(entries)
 	return nil
+}
+
+func sizeOfEntries(entries []pb.Entry) (size uint64) {
+	for _, e := range entries {
+		size += uint64(len(e.Data))
+	}
+	return size
+}
+
+func (ms *MemoryStorage) ShouldCompactBySize(size uint64) bool{
+	return size <= ms.entsSize
 }
