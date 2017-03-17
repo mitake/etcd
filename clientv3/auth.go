@@ -96,7 +96,7 @@ type Auth interface {
 	RoleRevokePermission(ctx context.Context, role string, key, rangeEnd string) (*AuthRoleRevokePermissionResponse, error)
 
 	// RoleDelete deletes a role.
-	RoleDelete(ctx context.Context, role string) (*AuthRoleDeleteResponse, error)
+	RoleDelete(ctx context.Context, role string, revoke bool) (*AuthRoleDeleteResponse, error)
 }
 
 type auth struct {
@@ -190,8 +190,8 @@ func (auth *auth) RoleRevokePermission(ctx context.Context, role string, key, ra
 	return (*AuthRoleRevokePermissionResponse)(resp), toErr(ctx, err)
 }
 
-func (auth *auth) RoleDelete(ctx context.Context, role string) (*AuthRoleDeleteResponse, error) {
-	resp, err := auth.remote.RoleDelete(ctx, &pb.AuthRoleDeleteRequest{Role: role})
+func (auth *auth) RoleDelete(ctx context.Context, role string, revoke bool) (*AuthRoleDeleteResponse, error) {
+	resp, err := auth.remote.RoleDelete(ctx, &pb.AuthRoleDeleteRequest{Role: role, Revoke: revoke})
 	return (*AuthRoleDeleteResponse)(resp), toErr(ctx, err)
 }
 

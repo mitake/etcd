@@ -885,6 +885,7 @@ message AuthRoleListRequest {
 
 message AuthRoleDeleteRequest {
   string role = 1;
+  bool revoke = 2;
 }
 
 message AuthRoleGrantPermissionRequest {

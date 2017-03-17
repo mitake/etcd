@@ -24,6 +24,7 @@ import (
 
 var (
 	grantPermissionPrefix bool
+	deleteWithRevokeRole  bool
 )
 
 // NewRoleCommand returns the cobra command for "role".
@@ -52,11 +53,15 @@ func newRoleAddCommand() *cobra.Command {
 }
 
 func newRoleDeleteCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "delete <role name>",
+	cmd := &cobra.Command{
+		Use:   "delete [options] <role name>",
 		Short: "Deletes a role",
 		Run:   roleDeleteCommandFunc,
 	}
+
+	cmd.Flags().BoolVar(&deleteWithRevokeRole, "revoke", false, "revoke the deleted role from all users")
+
+	return cmd
 }
 
 func newRoleGetCommand() *cobra.Command {
@@ -115,7 +120,7 @@ func roleDeleteCommandFunc(cmd *cobra.Command, args []string) {
 		ExitWithError(ExitBadArgs, fmt.Errorf("role delete command requires role name as its argument."))
 	}
 
-	resp, err := mustClientFromCmd(cmd).Auth.RoleDelete(context.TODO(), args[0])
+	resp, err := mustClientFromCmd(cmd).Auth.RoleDelete(context.TODO(), args[0], deleteWithRevokeRole)
 	if err != nil {
 		ExitWithError(ExitError, err)
 	}
