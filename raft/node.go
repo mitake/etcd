@@ -16,6 +16,7 @@ package raft
 
 import (
 	"errors"
+	"time"
 
 	pb "github.com/coreos/etcd/raft/raftpb"
 	"golang.org/x/net/context"
@@ -504,6 +505,26 @@ func (n *node) ReadIndex(ctx context.Context, rctx []byte) error {
 }
 
 func newReady(r *raft, prevSoftSt *SoftState, prevHardSt pb.HardState) Ready {
+	if time.Since(r.prevPropose) < time.Duration(100*time.Millisecond) &&
+		len(r.msgs) < 1000 {
+		// empty Ready that will return false when its containsUpdates() called
+		emptySnap := pb.Snapshot{
+			Metadata: pb.SnapshotMetadata{
+				Index: 0,
+			},
+		}
+
+		return Ready{
+			SoftState:        nil,
+			HardState:        emptyState,
+			Snapshot:         emptySnap,
+			ReadStates:       nil,
+			Entries:          nil,
+			CommittedEntries: nil,
+			Messages:         nil,
+		}
+	}
+
 	rd := Ready{
 		Entries:          r.raftLog.unstableEntries(),
 		CommittedEntries: r.raftLog.nextEnts(),

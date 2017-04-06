@@ -261,6 +261,8 @@ type raft struct {
 	step stepFunc
 
 	logger Logger
+
+	prevPropose time.Time
 }
 
 func newRaft(c *Config) *raft {
@@ -295,6 +297,7 @@ func newRaft(c *Config) *raft {
 		checkQuorum:      c.CheckQuorum,
 		preVote:          c.PreVote,
 		readOnly:         newReadOnly(c.ReadOnlyOption),
+		prevPropose:      time.Now(),
 	}
 	for _, p := range peers {
 		r.prs[p] = &Progress{Next: 1, ins: newInflights(r.maxInflight)}
