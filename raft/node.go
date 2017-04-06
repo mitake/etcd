@@ -505,15 +505,15 @@ func (n *node) ReadIndex(ctx context.Context, rctx []byte) error {
 }
 
 func newReady(r *raft, prevSoftSt *SoftState, prevHardSt pb.HardState) Ready {
-	if time.Since(r.prevPropose) < time.Duration(100*time.Millisecond) &&
-		len(r.msgs) < 1000 {
-		// empty Ready that will return false when its containsUpdates() called
+	if time.Since(r.prevPropose) < time.Duration(100*time.Microsecond) &&
+		len(r.msgs) < 10 {
 		emptySnap := pb.Snapshot{
 			Metadata: pb.SnapshotMetadata{
 				Index: 0,
 			},
 		}
 
+		// empty Ready that will return false when its containsUpdates() called
 		return Ready{
 			SoftState:        nil,
 			HardState:        emptyState,
@@ -543,6 +543,9 @@ func newReady(r *raft, prevSoftSt *SoftState, prevHardSt pb.HardState) Ready {
 		rd.ReadStates = r.readStates
 	}
 	rd.MustSync = MustSync(rd.HardState, prevHardSt, len(rd.Entries))
+
+	r.prevPropose = time.Now()
+
 	return rd
 }
 
