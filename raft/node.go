@@ -16,6 +16,7 @@ package raft
 
 import (
 	"errors"
+	"time"
 
 	pb "github.com/coreos/etcd/raft/raftpb"
 	"golang.org/x/net/context"
@@ -310,6 +311,15 @@ func (n *node) run(r *raft) {
 			lead = r.lead
 		}
 
+		temporallyDisabledProp := false
+		if shouldStopPropose(r) {
+			// The cluster has a leader, but there are too much logs so stop proposal temporally
+			if propc != nil {
+				propc = nil
+				temporallyDisabledProp = true
+			}
+		}
+
 		select {
 		// TODO: maybe buffer the config propose if there exists one (the way
 		// described in raft dissertation)
@@ -386,6 +396,10 @@ func (n *node) run(r *raft) {
 		case <-n.stop:
 			close(n.done)
 			return
+		}
+
+		if temporallyDisabledProp {
+			propc = n.propc
 		}
 	}
 }
@@ -522,6 +536,9 @@ func newReady(r *raft, prevSoftSt *SoftState, prevHardSt pb.HardState) Ready {
 		rd.ReadStates = r.readStates
 	}
 	rd.MustSync = MustSync(rd.HardState, prevHardSt, len(rd.Entries))
+
+	r.prevPropose = time.Now()
+
 	return rd
 }
 
@@ -534,4 +551,11 @@ func MustSync(st, prevst pb.HardState, entsnum int) bool {
 	// votedFor
 	// log entries[]
 	return entsnum != 0 || st.Vote != prevst.Vote || st.Term != prevst.Term
+}
+
+func shouldStopPropose(r *raft) bool {
+	if r.nrBatchEntries == 0 {
+		return false
+	}
+	return r.nrBatchEntries <= len(r.msgs)
 }

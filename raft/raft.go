@@ -176,6 +176,10 @@ type Config struct {
 	// Logger is the logger used for raft log. For multinode which can host
 	// multiple raft group, each raft group can have its own logger
 	Logger Logger
+
+	// NrBatchEntries is the maximum number of entries that will be sent via
+	// a single AppendEntries() RPC
+	NrBatchEntries int
 }
 
 func (c *Config) validate() error {
@@ -261,6 +265,10 @@ type raft struct {
 	step stepFunc
 
 	logger Logger
+
+	prevPropose          time.Time
+	nrBatchEntries       int
+	triggerBatchDuration time.Duration
 }
 
 func newRaft(c *Config) *raft {
@@ -295,6 +303,8 @@ func newRaft(c *Config) *raft {
 		checkQuorum:      c.CheckQuorum,
 		preVote:          c.PreVote,
 		readOnly:         newReadOnly(c.ReadOnlyOption),
+		prevPropose:      time.Now(),
+		nrBatchEntries:   c.NrBatchEntries,
 	}
 	for _, p := range peers {
 		r.prs[p] = &Progress{Next: 1, ins: newInflights(r.maxInflight)}

@@ -18,6 +18,8 @@ import (
 	"encoding/json"
 	"expvar"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -397,6 +399,10 @@ func startNode(cfg *ServerConfig, cl *membership.RaftCluster, ids []types.ID) (i
 	id = member.ID
 	plog.Infof("starting member %s in cluster %s", id, cl.ID())
 	s = raft.NewMemoryStorage()
+	nrBatchEntries, err := strconv.Atoi(cfg.BatchAppend)
+	if err != nil {
+		plog.Fatalf("%v", err)
+	}
 	c := &raft.Config{
 		ID:              uint64(id),
 		ElectionTick:    cfg.ElectionTicks,
@@ -405,6 +411,7 @@ func startNode(cfg *ServerConfig, cl *membership.RaftCluster, ids []types.ID) (i
 		MaxSizePerMsg:   maxSizePerMsg,
 		MaxInflightMsgs: maxInflightMsgs,
 		CheckQuorum:     true,
+		NrBatchEntries:  nrBatchEntries,
 	}
 
 	n = raft.StartNode(c, peers)
@@ -431,6 +438,10 @@ func restartNode(cfg *ServerConfig, snapshot *raftpb.Snapshot) (types.ID, *membe
 	}
 	s.SetHardState(st)
 	s.Append(ents)
+	nrBatchEntries, err := strconv.Atoi(cfg.BatchAppend)
+	if err != nil {
+		plog.Fatalf("%v", err)
+	}
 	c := &raft.Config{
 		ID:              uint64(id),
 		ElectionTick:    cfg.ElectionTicks,
@@ -439,6 +450,7 @@ func restartNode(cfg *ServerConfig, snapshot *raftpb.Snapshot) (types.ID, *membe
 		MaxSizePerMsg:   maxSizePerMsg,
 		MaxInflightMsgs: maxInflightMsgs,
 		CheckQuorum:     true,
+		NrBatchEntries:  nrBatchEntries,
 	}
 
 	n := raft.RestartNode(c)
@@ -487,6 +499,10 @@ func restartAsStandaloneNode(cfg *ServerConfig, snapshot *raftpb.Snapshot) (type
 	}
 	s.SetHardState(st)
 	s.Append(ents)
+	nrBatchEntries, err := strconv.Atoi(cfg.BatchAppend)
+	if err != nil {
+		plog.Fatalf("%v", err)
+	}
 	c := &raft.Config{
 		ID:              uint64(id),
 		ElectionTick:    cfg.ElectionTicks,
@@ -494,6 +510,7 @@ func restartAsStandaloneNode(cfg *ServerConfig, snapshot *raftpb.Snapshot) (type
 		Storage:         s,
 		MaxSizePerMsg:   maxSizePerMsg,
 		MaxInflightMsgs: maxInflightMsgs,
+		NrBatchEntries:  nrBatchEntries,
 	}
 	n := raft.RestartNode(c)
 	raftStatus = n.Status
@@ -587,4 +604,27 @@ func createConfigChangeEnts(ids []uint64, self uint64, term, index uint64) []raf
 		ents = append(ents, e)
 	}
 	return ents
+}
+
+func parseBatchAppendOpts(optstr string) (int, time.Duration) {
+	opts := strings.Split(optstr, ",")
+
+	if len(opts) != 2 {
+		plog.Fatalf("invalid option of batch append: %s", optstr)
+	}
+
+	nrEntries, err := strconv.Atoi(opts[0])
+	if err != nil {
+		plog.Fatalf("invalid option of batch append: %s", optstr)
+	}
+
+	batchDuration, err := time.ParseDuration(opts[1])
+	if err != nil {
+		plog.Fatalf("invalid option of batch append: %s", optstr)
+	}
+
+	plog.Infof("a maximum number of batched entries: %d", nrEntries)
+	plog.Infof("a limit duration of triggering batched appending: %v", batchDuration)
+
+	return nrEntries, batchDuration
 }
