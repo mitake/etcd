@@ -63,6 +63,7 @@ type ServerConfig struct {
 	AuthToken string
 
 	GroupCommitMaxPeek uint
+	BatchAppend        string
 }
 
 // VerifyBootstrap sanity-checks the initial config for bootstrap case

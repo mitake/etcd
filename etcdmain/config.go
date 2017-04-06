@@ -210,6 +210,7 @@ func newConfig() *config {
 
 	// performance
 	fs.UintVar(&cfg.GroupCommitMaxPeek, "group-commit-max-peek", cfg.GroupCommitMaxPeek, "Set maximum number of peeked entries in group commit.")
+	fs.StringVar(&cfg.BatchAppend, "batch-append", cfg.BatchAppend, "Specify parameters related to batch appending")
 
 	// ignored
 	for _, f := range cfg.ignored {
