@@ -279,6 +279,7 @@ func (n *node) run(r *raft) {
 	var havePrevLastUnstablei bool
 	var prevSnapi uint64
 	var rd Ready
+	var batchProposalTimer chan struct{}
 
 	lead := None
 	prevSoftSt := r.softState()
@@ -288,11 +289,19 @@ func (n *node) run(r *raft) {
 		if advancec != nil {
 			readyc = nil
 		} else {
-			rd = newReady(r, prevSoftSt, prevHardSt)
-			if rd.containsUpdates() {
-				readyc = n.readyc
+			if shouldPropose(r) {
+				rd = newReady(r, prevSoftSt, prevHardSt)
+				if rd.containsUpdates() {
+					readyc = n.readyc
+				} else {
+					readyc = nil
+				}
 			} else {
-				readyc = nil
+				batchProposalTimer = make(chan struct{})
+				go func(c chan struct{}) {
+					<-time.After(time.Duration(10 * time.Microsecond))
+					c <- struct{}{}
+				}(batchProposalTimer)
 			}
 		}
 
@@ -387,6 +396,7 @@ func (n *node) run(r *raft) {
 		case <-n.stop:
 			close(n.done)
 			return
+		case <-batchProposalTimer:
 		}
 	}
 }
@@ -505,26 +515,6 @@ func (n *node) ReadIndex(ctx context.Context, rctx []byte) error {
 }
 
 func newReady(r *raft, prevSoftSt *SoftState, prevHardSt pb.HardState) Ready {
-	if time.Since(r.prevPropose) < time.Duration(100*time.Microsecond) &&
-		len(r.msgs) < 10 {
-		emptySnap := pb.Snapshot{
-			Metadata: pb.SnapshotMetadata{
-				Index: 0,
-			},
-		}
-
-		// empty Ready that will return false when its containsUpdates() called
-		return Ready{
-			SoftState:        nil,
-			HardState:        emptyState,
-			Snapshot:         emptySnap,
-			ReadStates:       nil,
-			Entries:          nil,
-			CommittedEntries: nil,
-			Messages:         nil,
-		}
-	}
-
 	rd := Ready{
 		Entries:          r.raftLog.unstableEntries(),
 		CommittedEntries: r.raftLog.nextEnts(),
@@ -558,4 +548,10 @@ func MustSync(st, prevst pb.HardState, entsnum int) bool {
 	// votedFor
 	// log entries[]
 	return entsnum != 0 || st.Vote != prevst.Vote || st.Term != prevst.Term
+}
+
+func shouldPropose(r *raft) bool {
+	return time.Duration(100*time.Microsecond) < time.Since(r.prevPropose) ||
+		10 < len(r.msgs)
+
 }
