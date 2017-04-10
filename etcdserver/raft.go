@@ -18,6 +18,8 @@ import (
 	"encoding/json"
 	"expvar"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -367,14 +369,17 @@ func startNode(cfg *ServerConfig, cl *membership.RaftCluster, ids []types.ID) (i
 	id = member.ID
 	plog.Infof("starting member %s in cluster %s", id, cl.ID())
 	s = raft.NewMemoryStorage()
+	nrBatchEntries, triggerBatchDuration := parseBatchAppendOpts(cfg.BatchAppend)
 	c := &raft.Config{
-		ID:              uint64(id),
-		ElectionTick:    cfg.ElectionTicks,
-		HeartbeatTick:   1,
-		Storage:         s,
-		MaxSizePerMsg:   maxSizePerMsg,
-		MaxInflightMsgs: maxInflightMsgs,
-		CheckQuorum:     true,
+		ID:                   uint64(id),
+		ElectionTick:         cfg.ElectionTicks,
+		HeartbeatTick:        1,
+		Storage:              s,
+		MaxSizePerMsg:        maxSizePerMsg,
+		MaxInflightMsgs:      maxInflightMsgs,
+		CheckQuorum:          true,
+		NrBatchEntries:       nrBatchEntries,
+		TriggerBatchDuration: triggerBatchDuration,
 	}
 
 	n = raft.StartNode(c, peers)
@@ -557,4 +562,27 @@ func createConfigChangeEnts(ids []uint64, self uint64, term, index uint64) []raf
 		ents = append(ents, e)
 	}
 	return ents
+}
+
+func parseBatchAppendOpts(optstr string) (int, time.Duration) {
+	opts := strings.Split(optstr, ",")
+
+	if len(opts) != 2 {
+		plog.Fatalf("invalid option of batch append: %s", optstr)
+	}
+
+	nrEntries, err := strconv.Atoi(opts[0])
+	if err != nil {
+		plog.Fatalf("invalid option of batch append: %s", optstr)
+	}
+
+	batchDuration, err := time.ParseDuration(opts[1])
+	if err != nil {
+		plog.Fatalf("invalid option of batch append: %s", optstr)
+	}
+
+	plog.Infof("a maximum number of batched entries: %d", nrEntries)
+	plog.Infof("a limit duration of triggering batched appending: %v", batchDuration)
+
+	return nrEntries, batchDuration
 }
