@@ -70,5 +70,5 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&user, "user", "", "specify username and password in username:password format")
 	RootCmd.PersistentFlags().DurationVar(&dialTimeout, "dial-timeout", 0, "dial timeout for client connections")
 
-	RootCmd.PersistentFlags().BoolVar(&targetLeader, "target-leader", false, "'true' to target a leader node as a destination of RPCs")
+	RootCmd.PersistentFlags().BoolVar(&targetLeader, "target-leader", false, "connect only to the leader node")
 }

@@ -31,93 +31,52 @@ var (
 	// connections can be handed out in round-robin order
 	dialTotal int
 
-	// leaderEp is a cache for holding an endpoint of a leader node
-	leaderEp string
+	// leaderEps is a cache for holding endpoints of a leader node
+	leaderEps []string
 )
 
-func getLeaderEndpoint(eps []string) string {
-	if leaderEp != "" {
-		return leaderEp
-	}
-
-	cfg := clientv3.Config{
-		Endpoints:   []string{eps[0]},
-		DialTimeout: dialTimeout,
-	}
-
-	if !tls.Empty() {
-		cfgtls, err := tls.ClientConfig()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "bad tls config: %v\n", err)
-			os.Exit(1)
-		}
-		cfg.TLS = cfgtls
-	}
-
-	if len(user) != 0 {
-		splitted := strings.SplitN(user, ":", 2)
-		if len(splitted) != 2 {
-			fmt.Fprintf(os.Stderr, "bad user information: %s\n", user)
-			os.Exit(1)
-		}
-
-		cfg.Username = splitted[0]
-		cfg.Password = splitted[1]
-	}
-
-	client, err := clientv3.New(cfg)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create a client of endpoint %s\n", eps[0])
-		os.Exit(1)
-	}
-	defer client.Close()
-
-	resp, lerr := client.MemberList(context.TODO())
+func mustFindLeaderEndpoints(c *clientv3.Client) {
+	resp, lerr := c.MemberList(context.TODO())
 	if lerr != nil {
 		fmt.Fprintf(os.Stderr, "failed to get a member list: %s\n", lerr)
 		os.Exit(1)
 	}
 
-	for _, m := range resp.Members {
-		if len(m.ClientURLs) == 0 {
-			continue
-		}
-
-		ep := m.ClientURLs[0]
-		cfg.Endpoints = []string{ep}
-		c, err := clientv3.New(cfg)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to create a client for %s\n", ep)
-			os.Exit(1)
-		}
-		defer c.Close()
-
+	leaderId := uint64(0)
+	for _, ep := range c.Endpoints() {
 		resp, serr := c.Status(context.TODO(), ep)
-		if serr != nil {
-			continue
+		if serr == nil {
+			leaderId = resp.Leader
+			break
 		}
+	}
 
-		if resp.Header.MemberId == resp.Leader {
-			leaderEp = ep
-			return leaderEp
+	for _, m := range resp.Members {
+		if m.ID == leaderId {
+			leaderEps = m.ClientURLs
+			return
 		}
 	}
 
 	fmt.Fprintf(os.Stderr, "failed to find a leader endpoint\n")
 	os.Exit(1)
-	return "" // never reach
+}
+
+func mustTargetLeader(c *clientv3.Client) {
+	if len(leaderEps) == 0 {
+		mustFindLeaderEndpoints(c)
+	}
+	c.SetEndpoints(leaderEps...)
 }
 
 func mustCreateConn() *clientv3.Client {
-	var endpoint string
-	if targetLeader {
-		endpoint = getLeaderEndpoint(endpoints)
-	} else {
-		endpoint = endpoints[dialTotal%len(endpoints)]
+	connEndpoints := leaderEps
+	if len(connEndpoints) == 0 {
+		connEndpoints = []string{endpoints[dialTotal%len(endpoints)]}
 		dialTotal++
 	}
 	cfg := clientv3.Config{
-		Endpoints:   []string{endpoint},
+		Endpoints:   connEndpoints,
 		DialTimeout: dialTimeout,
 	}
 	if !tls.Empty() {
@@ -147,6 +106,11 @@ func mustCreateConn() *clientv3.Client {
 		fmt.Fprintf(os.Stderr, "dial error: %v\n", err)
 		os.Exit(1)
 	}
+
+	if targetLeader {
+		mustTargetLeader(client)
+	}
+
 	return client
 }
 
