@@ -61,6 +61,7 @@ import (
 
 const (
 	DefaultSnapCount = 100000
+	DefaultSnapSize  = DefaultSnapCount * 1024 // assume each entry is 1KB
 
 	StoreClusterPrefix = "/0"
 	StoreKeysPrefix    = "/1"
@@ -174,6 +175,7 @@ type EtcdServer struct {
 	r       raftNode
 
 	snapCount uint64
+	snapSize  uint64
 
 	w wait.Wait
 
@@ -407,6 +409,7 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 		readych:     make(chan struct{}),
 		Cfg:         cfg,
 		snapCount:   cfg.SnapCount,
+		snapSize:    cfg.SnapSize,
 		errorc:      make(chan error, 1),
 		store:       st,
 		snapshotter: ss,
@@ -531,6 +534,10 @@ func (s *EtcdServer) start() {
 	if s.snapCount == 0 {
 		plog.Infof("set snapshot count to default %d", DefaultSnapCount)
 		s.snapCount = DefaultSnapCount
+	}
+	if s.snapSize == 0 {
+		plog.Infof("set snapshot size to default %d", DefaultSnapSize)
+		s.snapSize = DefaultSnapSize
 	}
 	s.w = wait.New()
 	s.applyWait = wait.NewTimeList()
@@ -907,8 +914,12 @@ func (s *EtcdServer) applyEntries(ep *etcdProgress, apply *apply) {
 	}
 }
 
+func (s *EtcdServer) shouldTriggerSnapshot(ep *etcdProgress) bool {
+	return s.snapCount < ep.appliedi-ep.snapi || s.r.raftStorage.ShouldCompactBySize(s.snapSize)
+}
+
 func (s *EtcdServer) triggerSnapshot(ep *etcdProgress) {
-	if ep.appliedi-ep.snapi <= s.snapCount {
+	if !s.shouldTriggerSnapshot(ep) {
 		return
 	}
 
@@ -1411,6 +1422,24 @@ func (s *EtcdServer) applyConfChange(cc raftpb.ConfChange, confState *raftpb.Con
 	return false, nil
 }
 
+func (s *EtcdServer) getCompactIndex(snapi uint64) uint64 {
+	compacti := uint64(1)
+
+	if snapi > numberOfCatchUpEntries {
+		// keep some in memory log entries for slow followers.
+		compacti = snapi - numberOfCatchUpEntries
+	}
+
+	szCompacti := s.r.raftStorage.SizeBasedCompactIndex(s.snapSize)
+	if compacti < szCompacti {
+		if snapi < szCompacti {
+			return snapi
+		}
+		return szCompacti
+	}
+	return compacti
+}
+
 // TODO: non-blocking snapshot
 func (s *EtcdServer) snapshot(snapi uint64, confState raftpb.ConfState) {
 	clone := s.store.Clone()
@@ -1455,11 +1484,7 @@ func (s *EtcdServer) snapshot(snapi uint64, confState raftpb.ConfState) {
 			return
 		}
 
-		// keep some in memory log entries for slow followers.
-		compacti := uint64(1)
-		if snapi > numberOfCatchUpEntries {
-			compacti = snapi - numberOfCatchUpEntries
-		}
+		compacti := s.getCompactIndex(snapi)
 		err = s.r.raftStorage.Compact(compacti)
 		if err != nil {
 			// the compaction was done asynchronously with the progress of raft.

@@ -81,6 +81,8 @@ type MemoryStorage struct {
 	snapshot  pb.Snapshot
 	// ents[i] has raft log position i+snapshot.Metadata.Index
 	ents []pb.Entry
+	// entsSize has a total size of Data of ents
+	entsSize uint64
 }
 
 // NewMemoryStorage creates an empty MemoryStorage.
@@ -182,6 +184,7 @@ func (ms *MemoryStorage) ApplySnapshot(snap pb.Snapshot) error {
 
 	ms.snapshot = snap
 	ms.ents = []pb.Entry{{Term: snap.Metadata.Term, Index: snap.Metadata.Index}}
+	ms.entsSize = 0
 	return nil
 }
 
@@ -230,6 +233,7 @@ func (ms *MemoryStorage) Compact(compactIndex uint64) error {
 	ents[0].Term = ms.ents[i].Term
 	ents = append(ents, ms.ents[i+1:]...)
 	ms.ents = ents
+	ms.entsSize = sizeOfEntries(ms.ents)
 	return nil
 }
 
@@ -261,11 +265,45 @@ func (ms *MemoryStorage) Append(entries []pb.Entry) error {
 	case uint64(len(ms.ents)) > offset:
 		ms.ents = append([]pb.Entry{}, ms.ents[:offset]...)
 		ms.ents = append(ms.ents, entries...)
+		ms.entsSize = sizeOfEntries(ms.ents)
 	case uint64(len(ms.ents)) == offset:
 		ms.ents = append(ms.ents, entries...)
+		ms.entsSize += sizeOfEntries(entries)
 	default:
 		raftLogger.Panicf("missing log entry [last: %d, append at: %d]",
 			ms.lastIndex(), entries[0].Index)
 	}
 	return nil
+}
+
+func sizeOfEntries(entries []pb.Entry) (size uint64) {
+	for _, e := range entries {
+		size += uint64(len(e.Data))
+	}
+	return size
+}
+
+func (ms *MemoryStorage) ShouldCompactBySize(limitBytes uint64) bool {
+	ms.Lock()
+	defer ms.Unlock()
+
+	return limitBytes <= ms.entsSize
+}
+
+func (ms *MemoryStorage) SizeBasedCompactIndex(limitBytes uint64) uint64 {
+	ms.Lock()
+	defer ms.Unlock()
+
+	compacti := ms.ents[0].Index - 1
+	sz := uint64(0)
+
+	for _, e := range ms.ents {
+		sz += uint64(len(e.Data))
+		compacti++
+		if limitBytes <= sz {
+			return compacti
+		}
+	}
+
+	return compacti
 }

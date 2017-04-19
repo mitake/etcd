@@ -77,6 +77,7 @@ type Config struct {
 	MaxWalFiles             uint   `json:"max-wals"`
 	Name                    string `json:"name"`
 	SnapCount               uint64 `json:"snapshot-count"`
+	SnapSize                uint64 `json:"snapshot-size"`
 	AutoCompactionRetention int    `json:"auto-compaction-retention"`
 
 	// TickMs is the number of milliseconds between heartbeat ticks.
@@ -172,6 +173,7 @@ func NewConfig() *Config {
 		MaxWalFiles:         DefaultMaxWALs,
 		Name:                DefaultName,
 		SnapCount:           etcdserver.DefaultSnapCount,
+		SnapSize:            etcdserver.DefaultSnapSize,
 		TickMs:              100,
 		ElectionMs:          1000,
 		LPUrls:              []url.URL{*lpurl},
