@@ -653,6 +653,9 @@ message WatchResponse {
   // The client should treat the watcher as canceled and should not try to create any
   // watcher with the same start_revision again.
   int64 compact_revision  = 5;
+  // permissionDenied is set to true if the requesting user doesn't have a
+  // read permission of watched keys.
+  bool permission_denied = 6;
 
   repeated mvccpb.Event events = 11;
 }
