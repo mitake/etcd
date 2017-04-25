@@ -40,6 +40,7 @@ var (
 	storageKeySize int
 	valueSize      int
 	txn            bool
+	parallel       int
 )
 
 func init() {
@@ -49,6 +50,7 @@ func init() {
 	mvccPutCmd.Flags().IntVar(&storageKeySize, "key-size", 64, "a size of key (Byte)")
 	mvccPutCmd.Flags().IntVar(&valueSize, "value-size", 64, "a size of value (Byte)")
 	mvccPutCmd.Flags().BoolVar(&txn, "txn", false, "put a key in transaction or not")
+	mvccPutCmd.Flags().IntVar(&parallel, "parallel", 1, "a number of goroutines for putting keys")
 
 	// TODO: after the PR https://github.com/spf13/cobra/pull/220 is merged, the below pprof related flags should be moved to RootCmd
 	mvccPutCmd.Flags().StringVar(&cpuProfPath, "cpuprofile", "", "the path of file for storing cpu profile result")
@@ -105,17 +107,35 @@ func mvccPutFunc(cmd *cobra.Command, args []string) {
 	r := newReport()
 	rrc := r.Results()
 
+	if parallel == 0 {
+		parallel = 1
+	}
+
+	nrKeysPerThread := totalNrKeys / parallel
+	tComp := make(chan struct{})
 	rc := r.Run()
-	for i := 0; i < totalNrKeys; i++ {
-		st := time.Now()
-		if txn {
-			tw := s.Write()
-			tw.Put(keys[i], vals[i], lease.NoLease)
-			tw.End()
-		} else {
-			s.Put(keys[i], vals[i], lease.NoLease)
-		}
-		rrc <- report.Result{Start: st, End: time.Now()}
+
+	for i := 0; i < parallel; i++ {
+		go func(t int) {
+			start := nrKeysPerThread * t
+			for k := start; k < start+nrKeysPerThread; k++ {
+				st := time.Now()
+				if txn {
+					tw := s.Write()
+					tw.Put(keys[k], vals[k], lease.NoLease)
+					tw.End()
+				} else {
+					s.Put(keys[k], vals[k], lease.NoLease)
+				}
+				rrc <- report.Result{Start: st, End: time.Now()}
+			}
+
+			tComp <- struct{}{}
+		}(i)
+	}
+
+	for i := 0; i < parallel; i++ {
+		<-tComp
 	}
 
 	close(r.Results())
