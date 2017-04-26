@@ -892,6 +892,19 @@ func (s *EtcdServer) applySnapshot(ep *etcdProgress, apply *apply) {
 	ep.confState = apply.snapshot.Metadata.ConfState
 }
 
+func isNormalOnly(es []raftpb.Entry) bool {
+	for i := range es {
+		e := es[i]
+		switch e.Type {
+		case raftpb.EntryNormal:
+			continue
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func (s *EtcdServer) applyEntries(ep *etcdProgress, apply *apply) {
 	if len(apply.entries) == 0 {
 		return
@@ -908,8 +921,14 @@ func (s *EtcdServer) applyEntries(ep *etcdProgress, apply *apply) {
 		return
 	}
 	var shouldstop bool
-	if ep.appliedt, ep.appliedi, shouldstop = s.apply(ents, &ep.confState); shouldstop {
-		go s.stopWithDelay(10*100*time.Millisecond, fmt.Errorf("the member has been permanently removed from the cluster"))
+	if s.Cfg.GroupCommitMaxPeek == 0 || !isNormalOnly(ents) {
+		if ep.appliedt, ep.appliedi, shouldstop = s.apply(ents, &ep.confState); shouldstop {
+			go s.stopWithDelay(10*100*time.Millisecond, fmt.Errorf("the member has been permanently removed from the cluster"))
+		}
+	} else {
+		if ep.appliedt, ep.appliedi, shouldstop = s.groupApply(ents, &ep.confState); shouldstop {
+			go s.stopWithDelay(10*100*time.Millisecond, fmt.Errorf("the member has been permanently removed from the cluster"))
+		}
 	}
 }
 
@@ -1289,6 +1308,116 @@ func (s *EtcdServer) apply(es []raftpb.Entry, confState *raftpb.ConfState) (appl
 		atomic.StoreUint64(&s.r.term, e.Term)
 		appliedt = e.Term
 		appliedi = e.Index
+	}
+	return appliedt, appliedi, shouldStop
+}
+
+type groupEntries struct {
+	ents []*raftpb.Entry
+}
+
+func isPutReq(e *raftpb.Entry) *pb.PutRequest {
+	// TODO: duplicating many things with other place...
+	if len(e.Data) == 0 {
+		return nil
+	}
+
+	var raftReq pb.InternalRaftRequest
+	if !pbutil.MaybeUnmarshal(&raftReq, e.Data) {
+		return nil
+	}
+
+	return raftReq.Put
+}
+
+func entriesToGroupEntries(es []raftpb.Entry, maxPeek uint) []groupEntries {
+	starti := 0
+	ret := make([]groupEntries, 0)
+
+	for starti < len(es) {
+		nrGrouped := 1
+		gEnts := groupEntries{
+			ents: []*raftpb.Entry{&es[starti]},
+		}
+
+		putReq := isPutReq(gEnts.ents[0])
+		if putReq == nil {
+			ret = append(ret, gEnts)
+			starti++
+			continue
+		}
+
+		appeared := make(map[string]struct{})
+		appeared[string(putReq.Key)] = struct{}{}
+
+		for i := starti + 1; i < len(es) && i < starti+int(maxPeek); i++ {
+			putReq := isPutReq(&es[i])
+			if putReq == nil {
+				break
+			}
+
+			key := string(putReq.Key)
+			if _, ok := appeared[key]; ok {
+				break
+			}
+
+			appeared[key] = struct{}{}
+			gEnts.ents = append(gEnts.ents, &es[i])
+			nrGrouped++
+		}
+
+		ret = append(ret, gEnts)
+		starti += nrGrouped
+	}
+
+	return ret
+}
+
+func (s *EtcdServer) applyGroupEntries(ge groupEntries) {
+	// currently it only cares about Put() requests
+
+	txn := s.KV().Write()
+
+	for _, e := range ge.ents {
+		var rs pb.InternalRaftRequest
+		pbutil.MustUnmarshal(&rs, e.Data)
+		var ar applyResult
+		ar.resp, ar.err = s.applyV3.Put(txn, rs.Put)
+
+		// replying before commit is ok because the operation is already recorded in WAL
+		id := rs.ID
+		if id == 0 {
+			id = rs.Header.ID
+		}
+
+		s.w.Trigger(id, &ar)
+	}
+
+	txn.End()
+	s.setAppliedIndex(ge.ents[len(ge.ents)-1].Index)
+}
+
+func (s *EtcdServer) groupApply(es []raftpb.Entry, confState *raftpb.ConfState) (appliedt uint64, appliedi uint64, shouldStop bool) {
+	ges := entriesToGroupEntries(es, s.Cfg.GroupCommitMaxPeek)
+
+	for _, ge := range ges {
+		if len(ge.ents) == 1 {
+			e := ge.ents[0]
+			s.applyEntryNormal(e)
+
+			atomic.StoreUint64(&s.r.index, e.Index)
+			atomic.StoreUint64(&s.r.term, e.Term)
+			appliedt = e.Term
+			appliedi = e.Index
+		} else {
+			s.applyGroupEntries(ge)
+			laste := ge.ents[len(ge.ents)-1]
+
+			atomic.StoreUint64(&s.r.index, laste.Index)
+			atomic.StoreUint64(&s.r.term, laste.Term)
+			appliedt = laste.Term
+			appliedi = laste.Index
+		}
 	}
 	return appliedt, appliedi, shouldStop
 }

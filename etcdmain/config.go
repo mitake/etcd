@@ -208,6 +208,9 @@ func newConfig() *config {
 	// auth
 	fs.StringVar(&cfg.AuthToken, "auth-token", cfg.AuthToken, "Specify auth token specific options.")
 
+	// performance
+	fs.UintVar(&cfg.GroupCommitMaxPeek, "group-commit-max-peek", cfg.GroupCommitMaxPeek, "Set maximum number of peeked entries in group commit.")
+
 	// ignored
 	for _, f := range cfg.ignored {
 		fs.Var(&flags.IgnoredFlag{Name: f}, f, "")

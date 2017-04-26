@@ -132,6 +132,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 		StrictReconfigCheck:     cfg.StrictReconfigCheck,
 		ClientCertAuthEnabled:   cfg.ClientTLSInfo.ClientCertAuth,
 		AuthToken:               cfg.AuthToken,
+		GroupCommitMaxPeek:      cfg.GroupCommitMaxPeek,
 	}
 
 	if e.Server, err = etcdserver.NewServer(srvcfg); err != nil {

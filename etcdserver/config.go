@@ -61,6 +61,8 @@ type ServerConfig struct {
 	ClientCertAuthEnabled bool
 
 	AuthToken string
+
+	GroupCommitMaxPeek uint
 }
 
 // VerifyBootstrap sanity-checks the initial config for bootstrap case
