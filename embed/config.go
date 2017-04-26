@@ -132,6 +132,9 @@ type Config struct {
 	// auth
 
 	AuthToken string `json:"auth-token"`
+
+	// performance
+	GroupCommitMaxPeek uint `json:"group-commit-max-peek"`
 }
 
 // configYAML holds the config suitable for yaml parsing
@@ -184,6 +187,7 @@ func NewConfig() *Config {
 		Metrics:             "basic",
 		EnableV2:            true,
 		AuthToken:           "simple",
+		GroupCommitMaxPeek:  0,
 	}
 	cfg.InitialCluster = cfg.InitialClusterFromName(cfg.Name)
 	return cfg
