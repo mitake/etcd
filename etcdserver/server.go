@@ -892,6 +892,19 @@ func (s *EtcdServer) applySnapshot(ep *etcdProgress, apply *apply) {
 	ep.confState = apply.snapshot.Metadata.ConfState
 }
 
+func isNormalOnly(es []raftpb.Entry) bool {
+	for i := range es {
+		e := es[i]
+		switch e.Type {
+		case raftpb.EntryNormal:
+			continue
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func (s *EtcdServer) applyEntries(ep *etcdProgress, apply *apply) {
 	if len(apply.entries) == 0 {
 		return
@@ -908,8 +921,14 @@ func (s *EtcdServer) applyEntries(ep *etcdProgress, apply *apply) {
 		return
 	}
 	var shouldstop bool
-	if ep.appliedt, ep.appliedi, shouldstop = s.apply(ents, &ep.confState); shouldstop {
-		go s.stopWithDelay(10*100*time.Millisecond, fmt.Errorf("the member has been permanently removed from the cluster"))
+	if s.Cfg.GroupCommitMaxPeek == 0 || isNormalOnly(ents) {
+		if ep.appliedt, ep.appliedi, shouldstop = s.apply(ents, &ep.confState); shouldstop {
+			go s.stopWithDelay(10*100*time.Millisecond, fmt.Errorf("the member has been permanently removed from the cluster"))
+		}
+	} else {
+		if ep.appliedt, ep.appliedi, shouldstop = s.groupApply(ents, &ep.confState); shouldstop {
+			go s.stopWithDelay(10*100*time.Millisecond, fmt.Errorf("the member has been permanently removed from the cluster"))
+		}
 	}
 }
 
@@ -1266,6 +1285,29 @@ func (s *EtcdServer) sendMergedSnap(merged snap.Message) {
 // applies them to the current state of the EtcdServer.
 // The given entries should not be empty.
 func (s *EtcdServer) apply(es []raftpb.Entry, confState *raftpb.ConfState) (appliedt uint64, appliedi uint64, shouldStop bool) {
+	for i := range es {
+		e := es[i]
+		switch e.Type {
+		case raftpb.EntryNormal:
+			s.applyEntryNormal(&e)
+		case raftpb.EntryConfChange:
+			var cc raftpb.ConfChange
+			pbutil.MustUnmarshal(&cc, e.Data)
+			removedSelf, err := s.applyConfChange(cc, confState)
+			shouldStop = shouldStop || removedSelf
+			s.w.Trigger(cc.ID, &confChangeResponse{s.cluster.Members(), err})
+		default:
+			plog.Panicf("entry type should be either EntryNormal or EntryConfChange")
+		}
+		atomic.StoreUint64(&s.r.index, e.Index)
+		atomic.StoreUint64(&s.r.term, e.Term)
+		appliedt = e.Term
+		appliedi = e.Index
+	}
+	return appliedt, appliedi, shouldStop
+}
+
+func (s *EtcdServer) groupApply(es []raftpb.Entry, confState *raftpb.ConfState) (appliedt uint64, appliedi uint64, shouldStop bool) {
 	for i := range es {
 		e := es[i]
 		switch e.Type {
