@@ -921,7 +921,7 @@ func (s *EtcdServer) applyEntries(ep *etcdProgress, apply *apply) {
 		return
 	}
 	var shouldstop bool
-	if s.Cfg.GroupCommitMaxPeek == 0 || isNormalOnly(ents) {
+	if s.Cfg.GroupCommitMaxPeek == 0 || !isNormalOnly(ents) {
 		if ep.appliedt, ep.appliedi, shouldstop = s.apply(ents, &ep.confState); shouldstop {
 			go s.stopWithDelay(10*100*time.Millisecond, fmt.Errorf("the member has been permanently removed from the cluster"))
 		}
@@ -1308,10 +1308,10 @@ func (s *EtcdServer) apply(es []raftpb.Entry, confState *raftpb.ConfState) (appl
 }
 
 type groupEntries struct {
-	ents []raftpb.Entry
+	ents []*raftpb.Entry
 }
 
-func isPutReq(e raftpb.Entry) *pb.PutRequest {
+func isPutReq(e *raftpb.Entry) *pb.PutRequest {
 	// TODO: duplicating many things with other place...
 	if len(e.Data) == 0 {
 		return nil
@@ -1325,14 +1325,14 @@ func isPutReq(e raftpb.Entry) *pb.PutRequest {
 	return raftReq.Put
 }
 
-func entriesToCompundEntries(es []raftpb.Entry, maxPeek uint) []groupEntries {
+func entriesToGroupEntries(es []raftpb.Entry, maxPeek uint) []groupEntries {
 	starti := 0
 	ret := make([]groupEntries, 0)
 
 	for starti < len(es) {
 		nrGrouped := 1
 		gEnts := groupEntries{
-			ents: []raftpb.Entry{es[starti]},
+			ents: []*raftpb.Entry{&es[starti]},
 		}
 
 		putReq := isPutReq(gEnts.ents[0])
@@ -1345,9 +1345,9 @@ func entriesToCompundEntries(es []raftpb.Entry, maxPeek uint) []groupEntries {
 		appeared := make(map[string]struct{})
 		appeared[string(putReq.Key)] = struct{}{}
 
-		for i := starti + 1; i < len(es); i++ {
-			putReq := isPutReq(gEnts.ents[0])
-			if putReq != nil {
+		for i := starti + 1; i < len(es) && i < starti+int(maxPeek); i++ {
+			putReq := isPutReq(&es[i])
+			if putReq == nil {
 				break
 			}
 
@@ -1357,7 +1357,7 @@ func entriesToCompundEntries(es []raftpb.Entry, maxPeek uint) []groupEntries {
 			}
 
 			appeared[key] = struct{}{}
-			gEnts.ents = append(gEnts.ents, es[i])
+			gEnts.ents = append(gEnts.ents, &es[i])
 			nrGrouped++
 		}
 
@@ -1368,26 +1368,33 @@ func entriesToCompundEntries(es []raftpb.Entry, maxPeek uint) []groupEntries {
 	return ret
 }
 
+func (s *EtcdServer) applyGroupEntries(ge groupEntries) {
+	for i := range ge.ents {
+		s.applyEntryNormal(ge.ents[i])
+	}
+}
+
 func (s *EtcdServer) groupApply(es []raftpb.Entry, confState *raftpb.ConfState) (appliedt uint64, appliedi uint64, shouldStop bool) {
-	// TODO: if a number of groupEntries.ents is 1, just use applyEntryNormal().
-	for i := range es {
-		e := es[i]
-		switch e.Type {
-		case raftpb.EntryNormal:
-			s.applyEntryNormal(&e)
-		case raftpb.EntryConfChange:
-			var cc raftpb.ConfChange
-			pbutil.MustUnmarshal(&cc, e.Data)
-			removedSelf, err := s.applyConfChange(cc, confState)
-			shouldStop = shouldStop || removedSelf
-			s.w.Trigger(cc.ID, &confChangeResponse{s.cluster.Members(), err})
-		default:
-			plog.Panicf("entry type should be either EntryNormal or EntryConfChange")
+	ges := entriesToGroupEntries(es, s.Cfg.GroupCommitMaxPeek)
+
+	for _, ge := range ges {
+		if len(ge.ents) == 1 {
+			e := ge.ents[0]
+			s.applyEntryNormal(e)
+
+			atomic.StoreUint64(&s.r.index, e.Index)
+			atomic.StoreUint64(&s.r.term, e.Term)
+			appliedt = e.Term
+			appliedi = e.Index
+		} else {
+			s.applyGroupEntries(ge)
+			laste := ge.ents[len(ge.ents)-1]
+
+			atomic.StoreUint64(&s.r.index, laste.Index)
+			atomic.StoreUint64(&s.r.term, laste.Term)
+			appliedt = laste.Term
+			appliedi = laste.Index
 		}
-		atomic.StoreUint64(&s.r.index, e.Index)
-		atomic.StoreUint64(&s.r.term, e.Term)
-		appliedt = e.Term
-		appliedi = e.Index
 	}
 	return appliedt, appliedi, shouldStop
 }
