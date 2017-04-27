@@ -1307,7 +1307,69 @@ func (s *EtcdServer) apply(es []raftpb.Entry, confState *raftpb.ConfState) (appl
 	return appliedt, appliedi, shouldStop
 }
 
+type groupEntries struct {
+	ents []raftpb.Entry
+}
+
+func isPutReq(e raftpb.Entry) *pb.PutRequest {
+	// TODO: duplicating many things with other place...
+	if len(e.Data) == 0 {
+		return nil
+	}
+
+	var raftReq pb.InternalRaftRequest
+	if !pbutil.MaybeUnmarshal(&raftReq, e.Data) {
+		return nil
+	}
+
+	return raftReq.Put
+}
+
+func entriesToCompundEntries(es []raftpb.Entry, maxPeek uint) []groupEntries {
+	starti := 0
+	ret := make([]groupEntries, 0)
+
+	for starti < len(es) {
+		nrGrouped := 1
+		gEnts := groupEntries{
+			ents: []raftpb.Entry{es[starti]},
+		}
+
+		putReq := isPutReq(gEnts.ents[0])
+		if putReq == nil {
+			ret = append(ret, gEnts)
+			starti++
+			continue
+		}
+
+		appeared := make(map[string]struct{})
+		appeared[string(putReq.Key)] = struct{}{}
+
+		for i := starti + 1; i < len(es); i++ {
+			putReq := isPutReq(gEnts.ents[0])
+			if putReq != nil {
+				break
+			}
+
+			key := string(putReq.Key)
+			if _, ok := appeared[key]; ok {
+				break
+			}
+
+			appeared[key] = struct{}{}
+			gEnts.ents = append(gEnts.ents, es[i])
+			nrGrouped++
+		}
+
+		ret = append(ret, gEnts)
+		starti += nrGrouped
+	}
+
+	return ret
+}
+
 func (s *EtcdServer) groupApply(es []raftpb.Entry, confState *raftpb.ConfState) (appliedt uint64, appliedi uint64, shouldStop bool) {
+	// TODO: if a number of groupEntries.ents is 1, just use applyEntryNormal().
 	for i := range es {
 		e := es[i]
 		switch e.Type {
