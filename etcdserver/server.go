@@ -1372,26 +1372,24 @@ func (s *EtcdServer) applyGroupEntries(ge groupEntries) {
 	// currently it only cares about Put() requests
 
 	txn := s.KV().Write()
-	defer txn.End()
-	defer s.setAppliedIndex(ge.ents[len(ge.ents)-1].Index)
 
-	ars := make([]applyResult, len(ge.ents))
-	rrs := make([]pb.InternalRaftRequest, len(ge.ents))
+	for _, e := range ge.ents {
+		var rs pb.InternalRaftRequest
+		pbutil.MustUnmarshal(&rs, e.Data)
+		var ar applyResult
+		ar.resp, ar.err = s.applyV3.Put(txn, rs.Put)
 
-	for i, e := range ge.ents {
-		pbutil.MustUnmarshal(&rrs[i], e.Data)
-		ars[i].resp, ars[i].err = s.applyV3.Put(txn, rrs[i].Put)
-	}
-
-	for i := 0; i < len(ge.ents); i++ {
-		// FIXME: how to handle ENOSPC?
-		id := rrs[i].ID
+		// replying before commit is ok because the operation is already recorded in WAL
+		id := rs.ID
 		if id == 0 {
-			id = rrs[i].Header.ID
+			id = rs.Header.ID
 		}
 
-		s.w.Trigger(id, &ars[i])
+		s.w.Trigger(id, &ar)
 	}
+
+	txn.End()
+	s.setAppliedIndex(ge.ents[len(ge.ents)-1].Index)
 }
 
 func (s *EtcdServer) groupApply(es []raftpb.Entry, confState *raftpb.ConfState) (appliedt uint64, appliedi uint64, shouldStop bool) {
