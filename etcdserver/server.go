@@ -1369,8 +1369,28 @@ func entriesToGroupEntries(es []raftpb.Entry, maxPeek uint) []groupEntries {
 }
 
 func (s *EtcdServer) applyGroupEntries(ge groupEntries) {
-	for i := range ge.ents {
-		s.applyEntryNormal(ge.ents[i])
+	// currently it only cares about Put() requests
+
+	txn := s.KV().Write()
+	defer txn.End()
+	defer s.setAppliedIndex(ge.ents[len(ge.ents)-1].Index)
+
+	ars := make([]applyResult, len(ge.ents))
+	rrs := make([]pb.InternalRaftRequest, len(ge.ents))
+
+	for i, e := range ge.ents {
+		pbutil.MustUnmarshal(&rrs[i], e.Data)
+		ars[i].resp, ars[i].err = s.applyV3.Put(txn, rrs[i].Put)
+	}
+
+	for i := 0; i < len(ge.ents); i++ {
+		// FIXME: how to handle ENOSPC?
+		id := rrs[i].ID
+		if id == 0 {
+			id = rrs[i].Header.ID
+		}
+
+		s.w.Trigger(id, &ars[i])
 	}
 }
 
