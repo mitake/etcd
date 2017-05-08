@@ -1378,21 +1378,28 @@ func (s *EtcdServer) applyGroupEntries(ge groupEntries) {
 
 	txn := s.KV().Write()
 
+	wg := sync.WaitGroup{}
+	wg.Add(len(ge.ents))
+
 	for _, e := range ge.ents {
-		var rs pb.InternalRaftRequest
-		pbutil.MustUnmarshal(&rs, e.Data)
-		var ar applyResult
-		ar.resp, ar.err = s.applyV3.Put(txn, rs.Put)
+		go func(e *raftpb.Entry) {
+			var rs pb.InternalRaftRequest
+			pbutil.MustUnmarshal(&rs, e.Data)
+			var ar applyResult
+			ar.resp, ar.err = s.applyV3.Put(txn, rs.Put)
 
-		// replying before commit is ok because the operation is already recorded in WAL
-		id := rs.ID
-		if id == 0 {
-			id = rs.Header.ID
-		}
+			// replying before commit is ok because the operation is already recorded in WAL
+			id := rs.ID
+			if id == 0 {
+				id = rs.Header.ID
+			}
 
-		s.w.Trigger(id, &ar)
+			s.w.Trigger(id, &ar)
+			wg.Done()
+		}(e)
 	}
 
+	wg.Wait()
 	txn.End()
 	s.setAppliedIndex(ge.ents[len(ge.ents)-1].Index)
 }
