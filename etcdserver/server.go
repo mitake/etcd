@@ -1381,13 +1381,17 @@ func (s *EtcdServer) applyGroupEntries(ge groupEntries) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(ge.ents))
 
+	lock := sync.Mutex{}
+
 	for _, e := range ge.ents {
 		go func(e *raftpb.Entry) {
 			var rs pb.InternalRaftRequest
 			pbutil.MustUnmarshal(&rs, e.Data)
 			var ar applyResult
-			ar.resp, ar.err = s.applyV3.Put(txn, rs.Put)
 
+			lock.Lock()
+			ar.resp, ar.err = s.applyV3.Put(txn, rs.Put)
+			lock.Unlock()
 			// replying before commit is ok because the operation is already recorded in WAL
 			id := rs.ID
 			if id == 0 {
