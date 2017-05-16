@@ -714,12 +714,12 @@ func authTestWatch(cx ctlCtx) {
 	for i, tt := range tests {
 		donec := make(chan struct{})
 		go func(i int, puts []kv) {
+			defer close(donec)
 			for j := range puts {
 				if err := ctlV3Put(cx, puts[j].key, puts[j].val, ""); err != nil {
 					cx.t.Fatalf("watchTest #%d-%d: ctlV3Put error (%v)", i, j, err)
 				}
 			}
-			close(donec)
 		}(i, tt.puts)
 
 		var err error

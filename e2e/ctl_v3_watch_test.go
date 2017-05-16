@@ -86,13 +86,19 @@ func watchTest(cx ctlCtx) {
 	}
 }
 
-func ctlV3Watch(cx ctlCtx, args []string, kvs ...kv) error {
+func setupWatchArgs(cx ctlCtx, args []string) []string {
 	cmdArgs := append(cx.PrefixArgs(), "watch")
 	if cx.interactive {
 		cmdArgs = append(cmdArgs, "--interactive")
 	} else {
 		cmdArgs = append(cmdArgs, args...)
 	}
+
+	return cmdArgs
+}
+
+func ctlV3Watch(cx ctlCtx, args []string, kvs ...kv) error {
+	cmdArgs := setupWatchArgs(cx, args)
 
 	proc, err := spawnCmd(cmdArgs)
 	if err != nil {
@@ -118,12 +124,7 @@ func ctlV3Watch(cx ctlCtx, args []string, kvs ...kv) error {
 }
 
 func ctlV3WatchFailPerm(cx ctlCtx, args []string) error {
-	cmdArgs := append(cx.PrefixArgs(), "watch")
-	if cx.interactive {
-		cmdArgs = append(cmdArgs, "--interactive")
-	} else {
-		cmdArgs = append(cmdArgs, args...)
-	}
+	cmdArgs := setupWatchArgs(cx, args)
 
 	proc, err := spawnCmd(cmdArgs)
 	if err != nil {
