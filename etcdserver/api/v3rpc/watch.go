@@ -159,6 +159,10 @@ func (ws *watchServer) Watch(stream pb.Watch_WatchServer) (err error) {
 
 func (sws *serverWatchStream) isWatchPermitted(wcr *pb.WatchCreateRequest) bool {
 	authInfo, err := sws.ag.AuthInfoFromCtx(sws.gRPCStream.Context())
+	if authInfo == nil && err == nil {
+		// auth is not enabled
+		return true
+	}
 	if err != nil {
 		plog.Errorf("failed to get auth information from a context of watch: %s", err)
 		return false
