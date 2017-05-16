@@ -65,9 +65,6 @@ type WatchResponse struct {
 	Created bool
 
 	closeErr error
-
-	// PermissionDenied is used to indicate a permission error.
-	PermissionDenied bool
 }
 
 // IsCreate returns true if the event tells that the key is newly created.
@@ -89,8 +86,6 @@ func (wr *WatchResponse) Err() error {
 		return v3rpc.ErrCompacted
 	case wr.Canceled:
 		return v3rpc.ErrFutureRev
-	case wr.PermissionDenied:
-		return v3rpc.ErrPermissionDenied
 	}
 	return nil
 }
@@ -329,7 +324,6 @@ func (w *watchGrpcStream) Close() (err error) {
 	case err = <-w.errc:
 	default:
 	}
-
 	if w.closeErr != nil {
 		return w.closeErr
 	}
@@ -340,9 +334,9 @@ func (w *watcher) closeStream(wgs *watchGrpcStream) {
 	w.mu.Lock()
 	close(wgs.donec)
 	wgs.cancel()
-	if w.streams != nil {
-		delete(w.streams, wgs.ctxKey)
-	}
+	// if w.streams != nil {
+	// 	delete(w.streams, wgs.ctxKey)
+	// }
 	w.mu.Unlock()
 }
 
@@ -471,9 +465,6 @@ func (w *watchGrpcStream) run() {
 					close(ws.recvc)
 					closing[ws] = struct{}{}
 				}
-			case pbresp.PermissionDenied:
-				w.errc <- v3rpc.ErrPermissionDenied
-				w.donec <- struct{}{}
 			default:
 				// dispatch to appropriate watch stream
 				if ok := w.dispatchEvent(pbresp); ok {
@@ -541,12 +532,11 @@ func (w *watchGrpcStream) dispatchEvent(pbresp *pb.WatchResponse) bool {
 		events[i] = (*Event)(ev)
 	}
 	wr := &WatchResponse{
-		Header:           *pbresp.Header,
-		Events:           events,
-		CompactRevision:  pbresp.CompactRevision,
-		Created:          pbresp.Created,
-		Canceled:         pbresp.Canceled,
-		PermissionDenied: pbresp.PermissionDenied,
+		Header:          *pbresp.Header,
+		Events:          events,
+		CompactRevision: pbresp.CompactRevision,
+		Created:         pbresp.Created,
+		Canceled:        pbresp.Canceled,
 	}
 	select {
 	case ws.recvc <- wr:

@@ -202,15 +202,7 @@ func (sws *serverWatchStream) recvLoop() error {
 			}
 
 			if !sws.isWatchPermitted(creq) {
-				wr := &pb.WatchResponse{
-					PermissionDenied: true,
-				}
-
-				select {
-				case sws.ctrlStream <- wr:
-				case <-sws.closec:
-				}
-				return nil
+				return rpctypes.ErrGRPCPermissionDenied
 			}
 
 			filters := FiltersFromRequest(creq)

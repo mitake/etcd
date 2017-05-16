@@ -93,11 +93,11 @@ func NewFromURL(url string) (*Client, error) {
 // Close shuts down the client's etcd connections.
 func (c *Client) Close() error {
 	c.cancel()
-	err := c.Watcher.Close()
-	if err != nil {
-		return err
-	}
+	closeErr := c.Watcher.Close()
 	c.Lease.Close()
+	if closeErr != nil {
+		return closeErr
+	}
 	if c.conn != nil {
 		return toErr(c.ctx, c.conn.Close())
 	}
