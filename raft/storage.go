@@ -83,13 +83,20 @@ type MemoryStorage struct {
 	ents []pb.Entry
 	// entsSize has a total size of Data of ents
 	entsSize uint64
+
+	// snapSize holds a number of bytes that should be a limit of ents
+	// Note that the limit can be violated in some extreme cases e.g.
+	// a single entry can be larger than snapSize, so we cannot have
+	// an invariant that is always true like this: size of ents <= limit
+	snapSize uint64
 }
 
 // NewMemoryStorage creates an empty MemoryStorage.
-func NewMemoryStorage() *MemoryStorage {
+func NewMemoryStorage(snapSize uint64) *MemoryStorage {
 	return &MemoryStorage{
 		// When starting from scratch populate the list with a dummy entry at term zero.
-		ents: make([]pb.Entry, 1),
+		ents:     make([]pb.Entry, 1),
+		snapSize: snapSize,
 	}
 }
 
