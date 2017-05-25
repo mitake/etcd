@@ -61,7 +61,7 @@ import (
 
 const (
 	DefaultSnapCount = 100000
-	DefaultSnapSize  = DefaultSnapCount * 1024 // assume each entry is 1KB
+	DefaultSnapSize  = 0	// 0 means no size based compaction
 
 	StoreClusterPrefix = "/0"
 	StoreKeysPrefix    = "/1"
