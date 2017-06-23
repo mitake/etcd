@@ -15,6 +15,7 @@
 package etcdserver
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/coreos/etcd/auth"
@@ -189,6 +190,28 @@ func (aa *authApplierV3) checkLeasePuts(leaseID lease.LeaseID) error {
 	return nil
 }
 
+func (aa *authApplierV3) UserGet(r *pb.AuthUserGetRequest) (*pb.AuthUserGetResponse, error) {
+	err := aa.as.IsAdminPermitted(&aa.authInfo)
+	if err != nil && strings.Compare(r.Name, aa.authInfo.Username) != 0 {
+		aa.authInfo.Username = ""
+		aa.authInfo.Revision = 0
+		return &pb.AuthUserGetResponse{}, err
+	}
+
+	return aa.applierV3.UserGet(r)
+}
+
+func (aa *authApplierV3) RoleGet(r *pb.AuthRoleGetRequest) (*pb.AuthRoleGetResponse, error) {
+	err := aa.as.IsAdminPermitted(&aa.authInfo)
+	if err != nil && !aa.as.BelongTo(aa.authInfo.Username, r.Role) {
+		aa.authInfo.Username = ""
+		aa.authInfo.Revision = 0
+		return &pb.AuthRoleGetResponse{}, err
+	}
+
+	return aa.applierV3.RoleGet(r)
+}
+
 func needAdminPermission(r *pb.InternalRaftRequest) bool {
 	switch {
 	case r.AuthEnable != nil:
@@ -203,15 +226,11 @@ func needAdminPermission(r *pb.InternalRaftRequest) bool {
 		return true
 	case r.AuthUserGrantRole != nil:
 		return true
-	case r.AuthUserGet != nil:
-		return true
 	case r.AuthUserRevokeRole != nil:
 		return true
 	case r.AuthRoleAdd != nil:
 		return true
 	case r.AuthRoleGrantPermission != nil:
-		return true
-	case r.AuthRoleGet != nil:
 		return true
 	case r.AuthRoleRevokePermission != nil:
 		return true

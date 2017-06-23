@@ -165,6 +165,9 @@ type AuthStore interface {
 
 	// WithRoot generates and installs a token that can be used as a root credential
 	WithRoot(ctx context.Context) context.Context
+
+	// BelongTo checks that user belongs to role
+	BelongTo(user, role string) bool
 }
 
 type TokenProvider interface {
@@ -1096,4 +1099,24 @@ func (as *authStore) WithRoot(ctx context.Context) context.Context {
 	}
 	tokenMD := metadata.New(mdMap)
 	return metadata.NewContext(ctx, tokenMD)
+}
+
+func (as *authStore) BelongTo(user, role string) bool {
+	tx := as.be.BatchTx()
+	tx.Lock()
+	defer tx.Unlock()
+
+	u := getUser(tx, user)
+	if u == nil {
+		plog.Errorf("tried to check user %s belongs to role %s, but user %s doesn't exist", user, role, user)
+		return false
+	}
+
+	for _, r := range u.Roles {
+		if strings.Compare(role, r) == 0 {
+			return true
+		}
+	}
+
+	return false
 }
