@@ -19,7 +19,9 @@ import (
 	"strings"
 
 	"github.com/coreos/etcd/clientv3"
+	pb "github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/spf13/cobra"
+	"golang.org/x/net/context"
 )
 
 var (
@@ -32,6 +34,7 @@ var (
 	getRev         int64
 	getKeysOnly    bool
 	printValueOnly bool
+	allReadable    bool
 )
 
 // NewGetCommand returns the cobra command for "get".
@@ -51,11 +54,17 @@ func NewGetCommand() *cobra.Command {
 	cmd.Flags().Int64Var(&getRev, "rev", 0, "Specify the kv revision")
 	cmd.Flags().BoolVar(&getKeysOnly, "keys-only", false, "Get only the keys")
 	cmd.Flags().BoolVar(&printValueOnly, "print-value-only", false, `Only write values when using the "simple" output format`)
+	cmd.Flags().BoolVar(&allReadable, "all-readable", false, `Get all keys that can be read by a user`)
 	return cmd
 }
 
 // getCommandFunc executes the "get" command.
 func getCommandFunc(cmd *cobra.Command, args []string) {
+	if allReadable {
+		getAllReadable(cmd)
+		return
+	}
+
 	key, opts := getGetOp(cmd, args)
 	ctx, cancel := commandCtx(cmd)
 	resp, err := mustClientFromCmd(cmd).Get(ctx, key, opts...)
@@ -160,4 +169,56 @@ func getGetOp(cmd *cobra.Command, args []string) (string, []clientv3.OpOption) {
 	}
 
 	return key, opts
+}
+
+func getAllReadableWithRole(client *clientv3.Client, role string, result map[string]*pb.KeyValue) {
+	resp, err := client.Auth.RoleGet(context.TODO(), role)
+	if err != nil {
+		ExitWithError(ExitError, err)
+	}
+
+	for _, perm := range resp.Perm {
+		if perm.PermType == clientv3.PermWrite {
+			// skip write only permission
+			continue
+		}
+
+		opts := []clientv3.OpOption{}
+		opts = append(opts, clientv3.WithRange(string(perm.RangeEnd)))
+		getResp, err := client.KV.Get(context.TODO(), string(perm.Key))
+		if err != nil {
+			ExitWithError(ExitError, err)
+		}
+
+		for _, kv := range getResp.Kvs {
+			result[string(kv.Key)] = kv
+		}
+	}
+}
+
+func getAllReadable(cmd *cobra.Command) {
+	client := mustClientFromCmd(cmd)
+
+	// TODO(mitake): how to handle cert CN?
+	resp, err := client.Auth.UserGet(context.TODO(), client.Username)
+	if err != nil {
+		ExitWithError(ExitError, err)
+	}
+
+	result := make(map[string]*pb.KeyValue)
+	for _, role := range resp.Roles {
+		getAllReadableWithRole(client, role, result)
+	}
+
+	mockedGetResp := clientv3.GetResponse{
+		Header: nil,
+		Kvs:    make([]*pb.KeyValue, 0),
+		More:   false,
+		Count:  int64(len(result)),
+	}
+
+	for _, kv := range result {
+		mockedGetResp.Kvs = append(mockedGetResp.Kvs, kv)
+	}
+	display.Get(mockedGetResp)
 }
