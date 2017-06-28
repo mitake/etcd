@@ -45,10 +45,12 @@ type Enforcer struct {
 	enabled bool
 }
 
-// NewEnforcer gets an enforcer via CONF, file or DB.
-// e := NewEnforcer("path/to/casbin.conf")
-// e := NewEnforcer("path/to/basic_model.conf", "path/to/basic_policy.conf")
-// e := NewEnforcer("path/to/rbac_model.conf", "mysql", "root:@tcp(127.0.0.1:3306)/")
+// NewEnforcer creates an enforcer via file or DB.
+// File:
+// e := casbin.NewEnforcer("path/to/basic_model.conf", "path/to/basic_policy.conf")
+// MySQL DB:
+// a := mysqladapter.NewDBAdapter("mysql", "mysql_username:mysql_password@tcp(127.0.0.1:3306)/")
+// e := casbin.NewEnforcer("path/to/basic_model.conf", a)
 func NewEnforcer(params ...interface{}) *Enforcer {
 	e := &Enforcer{}
 
@@ -61,10 +63,18 @@ func NewEnforcer(params ...interface{}) *Enforcer {
 	}
 
 	if len(params) - parsedParamLen == 2 {
-		if reflect.TypeOf(params[1]).Kind() == reflect.String {
-			e.InitWithFile(params[0].(string), params[1].(string))
+		if reflect.TypeOf(params[0]).Kind() == reflect.String {
+			if reflect.TypeOf(params[1]).Kind() == reflect.String {
+				e.InitWithFile(params[0].(string), params[1].(string))
+			} else {
+				e.InitWithAdapter(params[0].(string), params[1].(persist.Adapter))
+			}
 		} else {
-			e.InitWithAdapter(params[0].(string), params[1].(persist.Adapter))
+			if reflect.TypeOf(params[1]).Kind() == reflect.String {
+				panic("Invalid parameters for enforcer.")
+			} else {
+				e.InitWithModelAndAdapter(params[0].(model.Model), params[1].(persist.Adapter))
+			}
 		}
 	} else if len(params) - parsedParamLen == 1 {
 		e.InitWithFile(params[0].(string), "")
@@ -99,8 +109,29 @@ func (e *Enforcer) InitWithAdapter(modelPath string, adapter persist.Adapter) {
 
 	e.enabled = true
 
-	e.LoadModel()
+	if e.modelPath != "" {
+		e.LoadModel()
+		e.LoadPolicy()
+	}
+}
+
+// InitWithModelAndAdapter initializes an enforcer with a model and a database adapter.
+func (e *Enforcer) InitWithModelAndAdapter(m model.Model, adapter persist.Adapter) {
+	e.modelPath = ""
+	e.adapter = adapter
+
+	e.model = m
+	e.model.PrintModel()
+	e.fm = model.LoadFunctionMap()
+
+	e.enabled = true
+
 	e.LoadPolicy()
+}
+
+// NewModel creates an empty model.
+func NewModel() model.Model {
+	return make(model.Model)
 }
 
 // LoadModel reloads the model from the model CONF file.
@@ -119,6 +150,16 @@ func (e *Enforcer) GetModel() model.Model {
 // SetModel sets the current model.
 func (e *Enforcer) SetModel(model model.Model) {
 	e.model = model
+}
+
+// GetAdapter gets the current adapter.
+func (e *Enforcer) GetAdapter() persist.Adapter {
+	return e.adapter
+}
+
+// SetAdapter sets the current adapter.
+func (e *Enforcer) SetAdapter(adapter persist.Adapter) {
+	e.adapter = adapter
 }
 
 // ClearPolicy clears all policy.

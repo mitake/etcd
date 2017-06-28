@@ -85,6 +85,34 @@ func initUsers(as *casbinAuthStore) error {
 	return err
 }
 
+func initPermissions(as *casbinAuthStore) {
+	e := as.enforcer
+
+	e.AddPermissionForUser("alice", "/dataset1/*", "*", "READ")
+	e.AddPermissionForUser("alice", "/dataset1/resource1", "*", "WRITE")
+
+	e.AddPermissionForUser("bob", "/dataset2/resource1", "*", "*")
+	e.AddPermissionForUser("bob", "/dataset2/resource2", "*", "READ")
+	e.AddPermissionForUser("bob", "/dataset2/folder1/*", "*", "WRITE")
+
+	e.AddPermissionForUser("dataset1_admin", "/dataset1/*", "*", "*")
+	e.AddPermissionForUser("dataset2_admin", "/dataset2/*", "*", "*")
+	e.AddPermissionForUser("root", "/*", "*", "*")
+
+	e.AddRoleForUser("dataset_admin", "dataset1_admin")
+	e.AddRoleForUser("dataset_admin", "dataset2_admin")
+	e.AddRoleForUser("cathy", "dataset_admin")
+	e.AddRoleForUser("david", "root")
+
+	tx := as.s.be.BatchTx()
+	tx.Lock()
+	defer tx.Unlock()
+
+	e.SavePolicy()
+	e.ClearPolicy()
+	e.LoadPolicy()
+}
+
 func enableCasbinAuthAndCreateUsers(as *casbinAuthStore) error {
 	err := initRoot(as)
 	if err != nil {
@@ -95,6 +123,8 @@ func enableCasbinAuthAndCreateUsers(as *casbinAuthStore) error {
 	if err != nil {
 		return err
 	}
+
+	initPermissions(as)
 
 	return as.s.AuthEnable()
 }

@@ -1,5 +1,5 @@
-hash: 08ed9ce47824d15e8c77b058e5f23dbd51feae69afada393d89b64082d913bca
-updated: 2017-06-23T23:48:11.536586254+08:00
+hash: 8860e2d3b755f563d0a5502a962fe5e9202852f4dce98800e5f7b0bb179616a2
+updated: 2017-06-28T20:53:31.17701127+08:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
@@ -10,7 +10,7 @@ imports:
 - name: github.com/boltdb/bolt
   version: 583e8937c61f1af6513608ccc75c97b6abdf4ff9
 - name: github.com/casbin/casbin
-  version: 8bae058da110e793de0f80766f3f8ee2be6a3551
+  version: 27a24f1712c2b786be8b3fc996e0c513d35bae67
   subpackages:
   - config
   - model

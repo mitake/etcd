@@ -16,15 +16,18 @@ package auth
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/casbin/casbin"
 	"github.com/coreos/etcd/auth/authpb"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/mvcc/backend"
-	"strings"
+	"golang.org/x/net/context"
 )
 
 var (
+	casbinAuthBucketName = []byte("casbinAuth")
+
 	ErrPermissionAlreadyExist = errors.New("auth: permission already exists")
 )
 
@@ -34,8 +37,85 @@ type casbinAuthStore struct {
 	enforcer *casbin.Enforcer
 }
 
+func (as *casbinAuthStore) AuthEnable() error {
+	return as.s.AuthEnable()
+}
+
+func (as *casbinAuthStore) AuthDisable() {
+	as.s.AuthDisable()
+}
+
+func (as *casbinAuthStore) Close() error {
+	return as.s.Close()
+}
+
+func (as *casbinAuthStore) Authenticate(ctx context.Context, username, password string) (*pb.AuthenticateResponse, error) {
+	return as.s.Authenticate(ctx, username, password)
+}
+
+func (as *casbinAuthStore) CheckPassword(username, password string) (uint64, error) {
+	return as.s.CheckPassword(username, password)
+}
+
+func (as *casbinAuthStore) Recover(be backend.Backend) {
+	as.s.Recover(be)
+}
+
+func (as *casbinAuthStore) UserList(r *pb.AuthUserListRequest) (*pb.AuthUserListResponse, error) {
+	return as.s.UserList(r)
+}
+
+func (as *casbinAuthStore) UserAdd(r *pb.AuthUserAddRequest) (*pb.AuthUserAddResponse, error) {
+	return as.s.UserAdd(r)
+}
+
+func (as *casbinAuthStore) UserDelete(r *pb.AuthUserDeleteRequest) (*pb.AuthUserDeleteResponse, error) {
+	return as.s.UserDelete(r)
+}
+
+func (as *casbinAuthStore) UserChangePassword(r *pb.AuthUserChangePasswordRequest) (*pb.AuthUserChangePasswordResponse, error) {
+	return as.s.UserChangePassword(r)
+}
+
+func (as *casbinAuthStore) RoleList(r *pb.AuthRoleListRequest) (*pb.AuthRoleListResponse, error) {
+	return as.s.RoleList(r)
+}
+
+func (as *casbinAuthStore) RoleAdd(r *pb.AuthRoleAddRequest) (*pb.AuthRoleAddResponse, error) {
+	return as.s.RoleAdd(r)
+}
+
+func (as *casbinAuthStore) RoleDelete(r *pb.AuthRoleDeleteRequest) (*pb.AuthRoleDeleteResponse, error) {
+	return as.s.RoleDelete(r)
+}
+
+func (as *casbinAuthStore) GenTokenPrefix() (string, error) {
+	return as.s.GenTokenPrefix()
+}
+
+func (as *casbinAuthStore) Revision() uint64 {
+	return as.s.Revision()
+}
+
+func (as *casbinAuthStore) AuthInfoFromCtx(ctx context.Context) (*AuthInfo, error) {
+	return as.s.AuthInfoFromCtx(ctx)
+}
+
+func (as *casbinAuthStore) AuthInfoFromTLS(ctx context.Context) *AuthInfo {
+	return as.s.AuthInfoFromTLS(ctx)
+}
+
+func (as *casbinAuthStore) WithRoot(ctx context.Context) context.Context {
+	return as.s.WithRoot(ctx)
+}
+
 func (as *casbinAuthStore) UserGrantRole(r *pb.AuthUserGrantRoleRequest) (*pb.AuthUserGrantRoleResponse, error) {
+	tx := as.s.be.BatchTx()
+	tx.Lock()
+	defer tx.Unlock()
+
 	as.enforcer.AddRoleForUser(r.User, r.Role)
+	as.enforcer.SavePolicy()
 
 	plog.Noticef("granted role %s to user %s", r.Role, r.User)
 	return &pb.AuthUserGrantRoleResponse{}, nil
@@ -72,6 +152,7 @@ func (as *casbinAuthStore) UserRevokeRole(r *pb.AuthUserRevokeRoleRequest) (*pb.
 	}
 
 	as.enforcer.DeleteRoleForUser(r.Name, r.Role)
+	as.enforcer.SavePolicy()
 
 	plog.Noticef("revoked role %s from user %s", r.Role, r.Name)
 	return &pb.AuthUserRevokeRoleResponse{}, nil
@@ -101,14 +182,6 @@ func (as *casbinAuthStore) RoleGet(r *pb.AuthRoleGetRequest) (*pb.AuthRoleGetRes
 	return &resp, nil
 }
 
-func (as *casbinAuthStore) RoleList(r *pb.AuthRoleListRequest) (*pb.AuthRoleListResponse, error) {
-	var resp pb.AuthRoleListResponse
-
-	resp.Roles = as.enforcer.GetAllRoles()
-
-	return &resp, nil
-}
-
 func (as *casbinAuthStore) RoleRevokePermission(r *pb.AuthRoleRevokePermissionRequest) (*pb.AuthRoleRevokePermissionResponse, error) {
 	tx := as.s.be.BatchTx()
 	tx.Lock()
@@ -124,6 +197,7 @@ func (as *casbinAuthStore) RoleRevokePermission(r *pb.AuthRoleRevokePermissionRe
 	}
 
 	as.enforcer.DeletePermissionForUser(r.Role, r.Key, r.RangeEnd)
+	as.enforcer.SavePolicy()
 
 	plog.Noticef("revoked key %s from role %s", r.Key, r.Role)
 	return &pb.AuthRoleRevokePermissionResponse{}, nil
@@ -144,6 +218,7 @@ func (as *casbinAuthStore) RoleGrantPermission(r *pb.AuthRoleGrantPermissionRequ
 	}
 
 	as.enforcer.AddPermissionForUser(r.Name, string(r.Perm.Key), string(r.Perm.RangeEnd), authpb.Permission_Type_name[int32(r.Perm.PermType)])
+	as.enforcer.SavePolicy()
 
 	plog.Noticef("role %s's permission of key %s is updated as %s", r.Name, r.Perm.Key, authpb.Permission_Type_name[int32(r.Perm.PermType)])
 	return &pb.AuthRoleGrantPermissionResponse{}, nil
@@ -208,7 +283,28 @@ func (as *casbinAuthStore) IsAdminPermitted(authInfo *AuthInfo) error {
 }
 
 func NewCasbinAuthStore(be backend.Backend, tp TokenProvider) *casbinAuthStore {
-	e := casbin.NewEnforcer("casbin_model.conf", "casbin_policy.csv")
+	tx := be.BatchTx()
+	tx.Lock()
+
+	tx.UnsafeCreateBucket(casbinAuthBucketName)
+
+	m := casbin.NewModel()
+	m.AddDef("r", "r", "user, key, rangeEnd, permType")
+	m.AddDef("p", "p", "user, key, rangeEnd, permType")
+	m.AddDef("g", "g", "_, _")
+	m.AddDef("e", "e", "some(where (p.eft == allow))")
+	m.AddDef("m", "m", "g(r.user, p.user) && keyMatch(r.key, p.key) && (r.permType == p.permType || p.permType == \"*\")")
+
+	a := NewCasbinBackend(casbinAuthBucketName, tx)
+
+	e := casbin.NewEnforcer(m, a, false)
+
+	e.AddPermissionForUser("root", "*", "*", "*")
+	e.SavePolicy()
+
+	tx.Unlock()
+	be.ForceCommit()
+
 	s := NewAuthStore(be, tp)
 
 	as := &casbinAuthStore{
