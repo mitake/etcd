@@ -23,6 +23,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/casbin/casbin"
 	"github.com/coreos/etcd/auth/authpb"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/mvcc/backend"
@@ -188,6 +189,8 @@ type authStore struct {
 	rangePermCache map[string]*unifiedRangePermissions // username -> unifiedRangePermissions
 
 	tokenProvider TokenProvider
+
+	enforcer *casbin.Enforcer
 }
 
 func (as *authStore) AuthEnable() error {
@@ -205,7 +208,7 @@ func (as *authStore) AuthEnable() error {
 		b.ForceCommit()
 	}()
 
-	u := getUser(tx, rootUser)
+	u := getUser(tx, rootUser, as.enforcer)
 	if u == nil {
 		return ErrRootUserNotExist
 	}
@@ -267,7 +270,7 @@ func (as *authStore) Authenticate(ctx context.Context, username, password string
 	tx.Lock()
 	defer tx.Unlock()
 
-	user := getUser(tx, username)
+	user := getUser(tx, username, as.enforcer)
 	if user == nil {
 		return nil, ErrAuthFailed
 	}
@@ -293,7 +296,7 @@ func (as *authStore) CheckPassword(username, password string) (uint64, error) {
 	tx.Lock()
 	defer tx.Unlock()
 
-	user := getUser(tx, username)
+	user := getUser(tx, username, as.enforcer)
 	if user == nil {
 		return 0, ErrAuthFailed
 	}
@@ -342,7 +345,7 @@ func (as *authStore) UserAdd(r *pb.AuthUserAddRequest) (*pb.AuthUserAddResponse,
 	tx.Lock()
 	defer tx.Unlock()
 
-	user := getUser(tx, r.Name)
+	user := getUser(tx, r.Name, as.enforcer)
 	if user != nil {
 		return nil, ErrUserAlreadyExist
 	}
@@ -371,7 +374,7 @@ func (as *authStore) UserDelete(r *pb.AuthUserDeleteRequest) (*pb.AuthUserDelete
 	tx.Lock()
 	defer tx.Unlock()
 
-	user := getUser(tx, r.Name)
+	user := getUser(tx, r.Name, as.enforcer)
 	if user == nil {
 		return nil, ErrUserNotFound
 	}
@@ -401,7 +404,7 @@ func (as *authStore) UserChangePassword(r *pb.AuthUserChangePasswordRequest) (*p
 	tx.Lock()
 	defer tx.Unlock()
 
-	user := getUser(tx, r.Name)
+	user := getUser(tx, r.Name, as.enforcer)
 	if user == nil {
 		return nil, ErrUserNotFound
 	}
@@ -429,7 +432,7 @@ func (as *authStore) UserGrantRole(r *pb.AuthUserGrantRoleRequest) (*pb.AuthUser
 	tx.Lock()
 	defer tx.Unlock()
 
-	user := getUser(tx, r.User)
+	user := getUser(tx, r.User, as.enforcer)
 	if user == nil {
 		return nil, ErrUserNotFound
 	}
@@ -467,7 +470,7 @@ func (as *authStore) UserGet(r *pb.AuthUserGetRequest) (*pb.AuthUserGetResponse,
 
 	var resp pb.AuthUserGetResponse
 
-	user := getUser(tx, r.Name)
+	user := getUser(tx, r.Name, as.enforcer)
 	if user == nil {
 		return nil, ErrUserNotFound
 	}
@@ -501,7 +504,7 @@ func (as *authStore) UserRevokeRole(r *pb.AuthUserRevokeRoleRequest) (*pb.AuthUs
 	tx.Lock()
 	defer tx.Unlock()
 
-	user := getUser(tx, r.Name)
+	user := getUser(tx, r.Name, as.enforcer)
 	if user == nil {
 		return nil, ErrUserNotFound
 	}
@@ -745,7 +748,7 @@ func (as *authStore) isOpPermitted(userName string, revision uint64, key, rangeE
 	tx.Lock()
 	defer tx.Unlock()
 
-	user := getUser(tx, userName)
+	user := getUser(tx, userName, as.enforcer)
 	if user == nil {
 		plog.Errorf("invalid user name %s for permission checking", userName)
 		return ErrPermissionDenied
@@ -787,7 +790,7 @@ func (as *authStore) IsAdminPermitted(authInfo *AuthInfo) error {
 	tx.Lock()
 	defer tx.Unlock()
 
-	u := getUser(tx, authInfo.Username)
+	u := getUser(tx, authInfo.Username, as.enforcer)
 	if u == nil {
 		return ErrUserNotFound
 	}
@@ -799,17 +802,18 @@ func (as *authStore) IsAdminPermitted(authInfo *AuthInfo) error {
 	return nil
 }
 
-func getUser(tx backend.BatchTx, username string) *authpb.User {
-	_, vs := tx.UnsafeRange(authUsersBucketName, []byte(username), nil, 0)
-	if len(vs) == 0 {
-		return nil
-	}
+func getUser(tx backend.BatchTx, username string, enforcer *casbin.Enforcer) *authpb.User {
+	// _, vs := tx.UnsafeRange(authUsersBucketName, []byte(username), nil, 0)
+	// if len(vs) == 0 {
+	// 	return nil
+	// }
 
 	user := &authpb.User{}
-	err := user.Unmarshal(vs[0])
-	if err != nil {
-		plog.Panicf("failed to unmarshal user struct (name: %s): %s", username, err)
-	}
+	// err := user.Unmarshal(vs[0])
+	// if err != nil {
+	// 	plog.Panicf("failed to unmarshal user struct (name: %s): %s", username, err)
+	// }
+	user.Roles = enforcer.GetRolesForUser(username)
 	return user
 }
 

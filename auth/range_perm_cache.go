@@ -15,13 +15,14 @@
 package auth
 
 import (
+	"github.com/casbin/casbin"
 	"github.com/coreos/etcd/auth/authpb"
 	"github.com/coreos/etcd/mvcc/backend"
 	"github.com/coreos/etcd/pkg/adt"
 )
 
-func getMergedPerms(tx backend.BatchTx, userName string) *unifiedRangePermissions {
-	user := getUser(tx, userName)
+func getMergedPerms(tx backend.BatchTx, userName string, enforcer *casbin.Enforcer) *unifiedRangePermissions {
+	user := getUser(tx, userName, enforcer)
 	if user == nil {
 		plog.Errorf("invalid user name %s", userName)
 		return nil
@@ -104,7 +105,7 @@ func (as *authStore) isRangeOpPermitted(tx backend.BatchTx, userName string, key
 	// assumption: tx is Lock()ed
 	_, ok := as.rangePermCache[userName]
 	if !ok {
-		perms := getMergedPerms(tx, userName)
+		perms := getMergedPerms(tx, userName, as.enforcer)
 		if perms == nil {
 			plog.Errorf("failed to create a unified permission of user %s", userName)
 			return false

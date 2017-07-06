@@ -128,7 +128,7 @@ func (as *casbinAuthStore) UserGet(r *pb.AuthUserGetRequest) (*pb.AuthUserGetRes
 
 	var resp pb.AuthUserGetResponse
 
-	user := getUser(tx, r.Name)
+	user := getUser(tx, r.Name, as.enforcer)
 	if user == nil {
 		return nil, ErrUserNotFound
 	}
@@ -142,7 +142,7 @@ func (as *casbinAuthStore) UserRevokeRole(r *pb.AuthUserRevokeRoleRequest) (*pb.
 	tx.Lock()
 	defer tx.Unlock()
 
-	user := getUser(tx, r.Name)
+	user := getUser(tx, r.Name, as.enforcer)
 	if user == nil {
 		return nil, ErrUserNotFound
 	}
@@ -233,7 +233,7 @@ func (as *casbinAuthStore) isOpPermitted(userName string, revision uint64, key, 
 	tx.Lock()
 	defer tx.Unlock()
 
-	user := getUser(tx, userName)
+	user := getUser(tx, userName, as.enforcer)
 	if user == nil {
 		plog.Errorf("invalid user name %s for permission checking", userName)
 		return ErrPermissionDenied
@@ -270,7 +270,7 @@ func (as *casbinAuthStore) IsAdminPermitted(authInfo *AuthInfo) error {
 	tx.Lock()
 	defer tx.Unlock()
 
-	u := getUser(tx, authInfo.Username)
+	u := getUser(tx, authInfo.Username, as.enforcer)
 	if u == nil {
 		return ErrUserNotFound
 	}
@@ -311,7 +311,8 @@ func NewCasbinAuthStore(be backend.Backend, tp TokenProvider) *casbinAuthStore {
 		enforcer: e,
 		s:        s,
 	}
-
+	s.enforcer = e
+	
 	return as
 }
 
