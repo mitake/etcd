@@ -47,6 +47,11 @@ type leaseProxy struct {
 	wg sync.WaitGroup
 }
 
+type authedLeaseProxy struct {
+	*leaseProxy
+	tokenCred *clientv3.AuthTokenCredential
+}
+
 func NewLeaseProxy(c *clientv3.Client) (pb.LeaseServer, <-chan struct{}) {
 	cctx, cancel := context.WithCancel(c.Ctx())
 	lp := &leaseProxy{
@@ -55,6 +60,7 @@ func NewLeaseProxy(c *clientv3.Client) (pb.LeaseServer, <-chan struct{}) {
 		ctx:         cctx,
 		leader:      newLeader(c.Ctx(), c.Watcher),
 	}
+	alp := &authedLeaseProxy{lp, c.TokenCred}
 	ch := make(chan struct{})
 	go func() {
 		defer close(ch)
@@ -69,7 +75,7 @@ func NewLeaseProxy(c *clientv3.Client) (pb.LeaseServer, <-chan struct{}) {
 		lp.mu.Unlock()
 		lp.wg.Wait()
 	}()
-	return lp, ch
+	return alp, ch
 }
 
 func (lp *leaseProxy) LeaseGrant(ctx context.Context, cr *pb.LeaseGrantRequest) (*pb.LeaseGrantResponse, error) {
@@ -364,4 +370,14 @@ func (ac *atomicCounter) add(delta int64) {
 
 func (ac *atomicCounter) get() int64 {
 	return atomic.LoadInt64(&ac.counter)
+}
+
+func (ap *authedLeaseProxy) LeaseGrant(ctx context.Context, cr *pb.LeaseGrantRequest) (*pb.LeaseGrantResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.leaseProxy.LeaseGrant(ctx, cr)
 }

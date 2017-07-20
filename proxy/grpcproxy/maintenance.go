@@ -25,9 +25,17 @@ type maintenanceProxy struct {
 	client *clientv3.Client
 }
 
+type authedMaintenanceProxy struct {
+	*maintenanceProxy
+	tokenCred *clientv3.AuthTokenCredential
+}
+
 func NewMaintenanceProxy(c *clientv3.Client) pb.MaintenanceServer {
-	return &maintenanceProxy{
-		client: c,
+	return &authedMaintenanceProxy{
+		&maintenanceProxy{
+			client: c,
+		},
+		c.TokenCred,
 	}
 }
 
@@ -76,4 +84,34 @@ func (mp *maintenanceProxy) Status(ctx context.Context, r *pb.StatusRequest) (*p
 func (mp *maintenanceProxy) MoveLeader(ctx context.Context, r *pb.MoveLeaderRequest) (*pb.MoveLeaderResponse, error) {
 	conn := mp.client.ActiveConnection()
 	return pb.NewMaintenanceClient(conn).MoveLeader(ctx, r)
+}
+
+func (ap *authedMaintenanceProxy) Defragment(ctx context.Context, dr *pb.DefragmentRequest) (*pb.DefragmentResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.maintenanceProxy.Defragment(ctx, dr)
+}
+
+func (ap *authedMaintenanceProxy) Snapshot(sr *pb.SnapshotRequest, stream pb.Maintenance_SnapshotServer) error {
+	token := getAuthTokenFromClient(stream.Context())
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.maintenanceProxy.Snapshot(sr, stream)
+}
+
+func (ap *authedMaintenanceProxy) Hash(ctx context.Context, r *pb.HashRequest) (*pb.HashResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.maintenanceProxy.Hash(ctx, r)
 }

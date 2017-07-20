@@ -45,6 +45,11 @@ type clusterProxy struct {
 	umap map[string]gnaming.Update
 }
 
+type authedClusterProxy struct {
+	*clusterProxy
+	tokenCred *clientv3.AuthTokenCredential
+}
+
 // NewClusterProxy takes optional prefix to fetch grpc-proxy member endpoints.
 // The returned channel is closed when there is grpc-proxy endpoint registered
 // and the client's context is canceled so the 'register' loop returns.
@@ -58,6 +63,7 @@ func NewClusterProxy(c *clientv3.Client, advaddr string, prefix string) (pb.Clus
 		prefix:  prefix,
 		umap:    make(map[string]gnaming.Update),
 	}
+	authedCP := &authedClusterProxy{cp, c.TokenCred}
 
 	donec := make(chan struct{})
 	if advaddr != "" && prefix != "" {
@@ -65,11 +71,11 @@ func NewClusterProxy(c *clientv3.Client, advaddr string, prefix string) (pb.Clus
 			defer close(donec)
 			cp.resolve(prefix)
 		}()
-		return cp, donec
+		return authedCP, donec
 	}
 
 	close(donec)
-	return cp, donec
+	return authedCP, donec
 }
 
 func (cp *clusterProxy) resolve(prefix string) {
@@ -174,4 +180,34 @@ func (cp *clusterProxy) MemberList(ctx context.Context, r *pb.MemberListRequest)
 	}
 	resp := (pb.MemberListResponse)(*mresp)
 	return &resp, err
+}
+
+func (ap *authedClusterProxy) MemberAdd(ctx context.Context, r *pb.MemberAddRequest) (*pb.MemberAddResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.clusterProxy.MemberAdd(ctx, r)
+}
+
+func (ap *authedClusterProxy) MemberRemove(ctx context.Context, r *pb.MemberRemoveRequest) (*pb.MemberRemoveResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.clusterProxy.MemberRemove(ctx, r)
+}
+
+func (ap *authedClusterProxy) MemberUpdate(ctx context.Context, r *pb.MemberUpdateRequest) (*pb.MemberUpdateResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.clusterProxy.MemberUpdate(ctx, r)
 }

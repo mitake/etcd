@@ -27,14 +27,20 @@ type kvProxy struct {
 	cache cache.Cache
 }
 
+type authedKVProxy struct {
+	*kvProxy
+	tokenCred *clientv3.AuthTokenCredential
+}
+
 func NewKvProxy(c *clientv3.Client) (pb.KVServer, <-chan struct{}) {
 	kv := &kvProxy{
 		kv:    c.KV,
 		cache: cache.NewCache(cache.DefaultMaxEntries),
 	}
+	authedKV := &authedKVProxy{kv, c.TokenCred}
 	donec := make(chan struct{})
 	close(donec)
-	return kv, donec
+	return authedKV, donec
 }
 
 func (p *kvProxy) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeResponse, error) {
@@ -223,4 +229,44 @@ func TxnRequestToOp(r *pb.TxnRequest) clientv3.Op {
 		elseops[i] = requestOpToOp(r.Failure[i])
 	}
 	return clientv3.OpTxn(cmps, thenops, elseops)
+}
+
+func (ap *authedKVProxy) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.kvProxy.Range(ctx, r)
+}
+
+func (ap *authedKVProxy) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.kvProxy.Put(ctx, r)
+}
+
+func (ap *authedKVProxy) DeleteRange(ctx context.Context, r *pb.DeleteRangeRequest) (*pb.DeleteRangeResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.kvProxy.DeleteRange(ctx, r)
+}
+
+func (ap *authedKVProxy) Txn(ctx context.Context, r *pb.TxnRequest) (*pb.TxnResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		ap.tokenCred.UpdateToken(token)
+		defer ap.tokenCred.UpdateToken("")
+	}
+
+	return ap.kvProxy.Txn(ctx, r)
 }

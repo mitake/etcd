@@ -25,8 +25,13 @@ type AuthProxy struct {
 	client *clientv3.Client
 }
 
+type authedAuthProxy struct {
+	*AuthProxy
+	tokenCred *clientv3.AuthTokenCredential
+}
+
 func NewAuthProxy(c *clientv3.Client) pb.AuthServer {
-	return &AuthProxy{client: c}
+	return &authedAuthProxy{&AuthProxy{client: c}, c.TokenCred}
 }
 
 func (ap *AuthProxy) AuthEnable(ctx context.Context, r *pb.AuthEnableRequest) (*pb.AuthEnableResponse, error) {
@@ -107,4 +112,144 @@ func (ap *AuthProxy) UserRevokeRole(ctx context.Context, r *pb.AuthUserRevokeRol
 func (ap *AuthProxy) UserChangePassword(ctx context.Context, r *pb.AuthUserChangePasswordRequest) (*pb.AuthUserChangePasswordResponse, error) {
 	conn := ap.client.ActiveConnection()
 	return pb.NewAuthClient(conn).UserChangePassword(ctx, r)
+}
+
+func (aap *authedAuthProxy) AuthDisable(ctx context.Context, r *pb.AuthDisableRequest) (*pb.AuthDisableResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.AuthDisable(ctx, r)
+}
+
+func (aap *authedAuthProxy) RoleAdd(ctx context.Context, r *pb.AuthRoleAddRequest) (*pb.AuthRoleAddResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.RoleAdd(ctx, r)
+}
+
+func (aap *authedAuthProxy) RoleDelete(ctx context.Context, r *pb.AuthRoleDeleteRequest) (*pb.AuthRoleDeleteResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.RoleDelete(ctx, r)
+}
+
+func (aap *authedAuthProxy) RoleGet(ctx context.Context, r *pb.AuthRoleGetRequest) (*pb.AuthRoleGetResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.RoleGet(ctx, r)
+}
+
+func (aap *authedAuthProxy) RoleList(ctx context.Context, r *pb.AuthRoleListRequest) (*pb.AuthRoleListResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.RoleList(ctx, r)
+}
+
+func (aap *authedAuthProxy) RoleRevokePermission(ctx context.Context, r *pb.AuthRoleRevokePermissionRequest) (*pb.AuthRoleRevokePermissionResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.RoleRevokePermission(ctx, r)
+}
+
+func (aap *authedAuthProxy) RoleGrantPermission(ctx context.Context, r *pb.AuthRoleGrantPermissionRequest) (*pb.AuthRoleGrantPermissionResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.RoleGrantPermission(ctx, r)
+}
+
+func (aap *authedAuthProxy) UserAdd(ctx context.Context, r *pb.AuthUserAddRequest) (*pb.AuthUserAddResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.UserAdd(ctx, r)
+}
+
+func (aap *authedAuthProxy) UserDelete(ctx context.Context, r *pb.AuthUserDeleteRequest) (*pb.AuthUserDeleteResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.UserDelete(ctx, r)
+}
+
+func (aap *authedAuthProxy) UserGet(ctx context.Context, r *pb.AuthUserGetRequest) (*pb.AuthUserGetResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.UserGet(ctx, r)
+}
+
+func (aap *authedAuthProxy) UserList(ctx context.Context, r *pb.AuthUserListRequest) (*pb.AuthUserListResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.UserList(ctx, r)
+}
+
+func (aap *authedAuthProxy) UserGrantRole(ctx context.Context, r *pb.AuthUserGrantRoleRequest) (*pb.AuthUserGrantRoleResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.UserGrantRole(ctx, r)
+}
+
+func (aap *authedAuthProxy) UserRevokeRole(ctx context.Context, r *pb.AuthUserRevokeRoleRequest) (*pb.AuthUserRevokeRoleResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.UserRevokeRole(ctx, r)
+}
+
+func (aap *authedAuthProxy) UserChangePassword(ctx context.Context, r *pb.AuthUserChangePasswordRequest) (*pb.AuthUserChangePasswordResponse, error) {
+	token := getAuthTokenFromClient(ctx)
+	if token != "" {
+		aap.tokenCred.UpdateToken(token)
+		defer aap.tokenCred.UpdateToken("")
+	}
+
+	return aap.AuthProxy.UserChangePassword(ctx, r)
 }

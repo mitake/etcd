@@ -65,8 +65,8 @@ type Client struct {
 	Username string
 	// Password is a password for authentication
 	Password string
-	// tokenCred is an instance of WithPerRPCCredentials()'s argument
-	tokenCred *authTokenCredential
+	// TokenCred is an instance of WithPerRPCCredentials()'s argument
+	TokenCred *AuthTokenCredential
 }
 
 // New creates a new etcdv3 client from a given configuration.
@@ -153,21 +153,30 @@ func (c *Client) autoSync() {
 	}
 }
 
-type authTokenCredential struct {
+type AuthTokenCredential struct {
 	token   string
 	tokenMu *sync.RWMutex
 }
 
-func (cred authTokenCredential) RequireTransportSecurity() bool {
+func (cred *AuthTokenCredential) RequireTransportSecurity() bool {
 	return false
 }
 
-func (cred authTokenCredential) GetRequestMetadata(ctx context.Context, s ...string) (map[string]string, error) {
+func (cred *AuthTokenCredential) GetRequestMetadata(ctx context.Context, s ...string) (map[string]string, error) {
 	cred.tokenMu.RLock()
 	defer cred.tokenMu.RUnlock()
+	if cred.token == "" {
+		return nil, nil
+	}
 	return map[string]string{
 		"token": cred.token,
 	}, nil
+}
+
+func (cred *AuthTokenCredential) UpdateToken(token string) {
+	cred.tokenMu.Lock()
+	defer cred.tokenMu.Unlock()
+	cred.token = token
 }
 
 func parseEndpoint(endpoint string) (proto string, host string, scheme string) {
@@ -293,9 +302,9 @@ func (c *Client) getToken(ctx context.Context) error {
 			continue
 		}
 
-		c.tokenCred.tokenMu.Lock()
-		c.tokenCred.token = resp.Token
-		c.tokenCred.tokenMu.Unlock()
+		c.TokenCred.tokenMu.Lock()
+		c.TokenCred.token = resp.Token
+		c.TokenCred.tokenMu.Unlock()
 
 		return nil
 	}
@@ -306,29 +315,33 @@ func (c *Client) getToken(ctx context.Context) error {
 func (c *Client) dial(endpoint string, dopts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	opts := c.dialSetupOpts(endpoint, dopts...)
 	host := getHost(endpoint)
-	if c.Username != "" && c.Password != "" {
-		c.tokenCred = &authTokenCredential{
+	doAuth := c.Username != "" && c.Password != ""
+	if doAuth || c.cfg.CreateUninitializedAuthTokenCred {
+		c.TokenCred = &AuthTokenCredential{
 			tokenMu: &sync.RWMutex{},
 		}
 
-		ctx := c.ctx
-		if c.cfg.DialTimeout > 0 {
-			cctx, cancel := context.WithTimeout(ctx, c.cfg.DialTimeout)
-			defer cancel()
-			ctx = cctx
+		if doAuth {
+			ctx := c.ctx
+			if c.cfg.DialTimeout > 0 {
+				cctx, cancel := context.WithTimeout(ctx, c.cfg.DialTimeout)
+				defer cancel()
+				ctx = cctx
+			}
+
+			err := c.getToken(ctx)
+			if err != nil {
+				if toErr(ctx, err) != rpctypes.ErrAuthNotEnabled {
+					if err == ctx.Err() && ctx.Err() != c.ctx.Err() {
+						err = grpc.ErrClientConnTimeout
+					}
+					return nil, err
+				}
+			}
 		}
 
-		err := c.getToken(ctx)
-		if err != nil {
-			if toErr(ctx, err) != rpctypes.ErrAuthNotEnabled {
-				if err == ctx.Err() && ctx.Err() != c.ctx.Err() {
-					err = grpc.ErrClientConnTimeout
-				}
-				return nil, err
-			}
-		} else {
-			opts = append(opts, grpc.WithPerRPCCredentials(c.tokenCred))
-		}
+		opts = append(opts, grpc.WithPerRPCCredentials(c.TokenCred))
+
 	}
 
 	opts = append(opts, c.cfg.DialOptions...)

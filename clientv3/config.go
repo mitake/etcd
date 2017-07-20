@@ -59,4 +59,9 @@ type Config struct {
 	// Context is the default client context; it can be used to cancel grpc dial out and
 	// other operations that do not have an explicit context.
 	Context context.Context
+
+	// CreateUninitializedAuthTokenCred is a flag for initializing connection with
+	// AuthTokenCredential even without Username and Password. This is required for grpcproxy
+	// for forwarding a token supplied by its client.
+	CreateUninitializedAuthTokenCred bool
 }
