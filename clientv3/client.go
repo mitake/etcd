@@ -152,8 +152,8 @@ func (c *Client) autoSync() {
 }
 
 type authTokenCredential struct {
-	token   string
-	tokenMu *sync.RWMutex
+	tokenMap map[string]string // host -> token
+	tokenMu  *sync.RWMutex
 }
 
 func (cred authTokenCredential) RequireTransportSecurity() bool {
@@ -163,8 +163,21 @@ func (cred authTokenCredential) RequireTransportSecurity() bool {
 func (cred authTokenCredential) GetRequestMetadata(ctx context.Context, s ...string) (map[string]string, error) {
 	cred.tokenMu.RLock()
 	defer cred.tokenMu.RUnlock()
+
+	// FIXME: after grpc-go has https://github.com/grpc/grpc-go/pull/1433 in its stable release,
+	// this ad hoc change must be removed.
+	// See the discussion here: https://github.com/grpc/grpc-go/issues/1435
+	url, uerr := url.Parse(s[0])
+	if uerr != nil {
+		return nil, fmt.Errorf("unexpected format of GetRequestMetadata parameter: %s\n", s[0])
+	}
+	splitted := strings.Split(url.Host, ":")
+	if len(splitted) != 3 {
+		return nil, fmt.Errorf("unexpected format of GetRequestMetadata parameter: %s\n", s[0])
+	}
+	host := splitted[0] + ":" + splitted[2]
 	return map[string]string{
-		"token": cred.token,
+		"token": cred.tokenMap[host],
 	}, nil
 }
 
@@ -292,7 +305,7 @@ func (c *Client) getToken(ctx context.Context) error {
 		}
 
 		c.tokenCred.tokenMu.Lock()
-		c.tokenCred.token = resp.Token
+		c.tokenCred.tokenMap[host] = resp.Token
 		c.tokenCred.tokenMu.Unlock()
 
 		return nil
@@ -306,7 +319,8 @@ func (c *Client) dial(endpoint string, dopts ...grpc.DialOption) (*grpc.ClientCo
 	host := getHost(endpoint)
 	if c.Username != "" && c.Password != "" {
 		c.tokenCred = &authTokenCredential{
-			tokenMu: &sync.RWMutex{},
+			tokenMap: make(map[string]string),
+			tokenMu:  &sync.RWMutex{},
 		}
 
 		ctx := c.ctx
