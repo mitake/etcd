@@ -236,14 +236,20 @@ func (a *applierV3backend) DeleteRange(txn mvcc.TxnWrite, dr *pb.DeleteRangeRequ
 	return resp, nil
 }
 
+func nextKey(key []byte) []byte {
+	for i := len(key) - 1; 0 <= i; i-- {
+		if key[i] < 0xff {
+			key[i]++
+			return key[:i+1]
+		}
+	}
+
+	return []byte{0}
+}
+
 func (a *applierV3backend) Range(txn mvcc.TxnRead, r *pb.RangeRequest) (*pb.RangeResponse, error) {
 	resp := &pb.RangeResponse{}
 	resp.Header = &pb.ResponseHeader{}
-
-	if txn == nil {
-		txn = a.s.kv.Read()
-		defer txn.End()
-	}
 
 	limit := r.Limit
 	if r.SortOrder != pb.RangeRequest_NONE ||
@@ -257,15 +263,60 @@ func (a *applierV3backend) Range(txn mvcc.TxnRead, r *pb.RangeRequest) (*pb.Rang
 		limit = limit + 1
 	}
 
-	ro := mvcc.RangeOptions{
-		Limit: limit,
-		Rev:   r.Revision,
-		Count: r.CountOnly,
-	}
+	var rr *mvcc.RangeResult
+	var err error
+	rangeEnd := mkGteRange(r.RangeEnd)
 
-	rr, err := txn.Range(r.Key, mkGteRange(r.RangeEnd), ro)
-	if err != nil {
-		return nil, err
+	if txn != nil {
+		ro := mvcc.RangeOptions{
+			Limit: limit,
+			Rev:   r.Revision,
+			Count: r.CountOnly,
+		}
+
+		rr, err = txn.Range(r.Key, rangeEnd, ro)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		rr = &mvcc.RangeResult{
+			KVs: make([]mvccpb.KeyValue, 0),
+			Rev: r.Revision,
+		}
+
+		lim := int64(a.s.Cfg.RangeMaxKeysOnce)
+		if lim == 0 || r.Limit != 0 && r.Limit < lim {
+			lim = r.Limit
+		}
+		startKey := r.Key
+		noEnd := bytes.Compare(rangeEnd, []byte{0}) != 0
+		for noEnd || bytes.Compare(startKey, rangeEnd) == -1 {
+			txn := a.s.kv.Read()
+
+			ro := mvcc.RangeOptions{
+				Limit: lim,
+				Rev:   r.Revision,
+				Count: r.CountOnly,
+			}
+
+			rrpart, err := txn.Range(startKey, rangeEnd, ro)
+			txn.End()
+			if err != nil {
+				return nil, err
+			}
+
+			if rrpart.Count == 0 {
+				break
+			}
+
+			rr.KVs = append(rr.KVs, rrpart.KVs...)
+			rr.Count += len(rrpart.KVs)
+
+			startKey = nextKey(rrpart.KVs[len(rrpart.KVs)-1].Key)
+			if bytes.Compare(startKey, []byte{0}) == 0 {
+				break
+			}
+		}
 	}
 
 	if r.MaxModRevision != 0 {
