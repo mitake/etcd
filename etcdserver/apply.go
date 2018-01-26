@@ -17,7 +17,6 @@ package etcdserver
 import (
 	"bytes"
 	"context"
-	"runtime"
 	"sort"
 	"time"
 
@@ -318,7 +317,7 @@ func (a *applierV3backend) Range(txn mvcc.TxnRead, r *pb.RangeRequest) (*pb.Rang
 				break
 			}
 
-			runtime.Gosched()
+			time.Sleep(1 * time.Millisecond)
 		}
 	}
 
