@@ -17,6 +17,7 @@ package etcdserver
 import (
 	"bytes"
 	"context"
+	"runtime"
 	"sort"
 	"time"
 
@@ -316,6 +317,8 @@ func (a *applierV3backend) Range(txn mvcc.TxnRead, r *pb.RangeRequest) (*pb.Rang
 			if bytes.Compare(startKey, []byte{0}) == 0 {
 				break
 			}
+
+			runtime.Gosched()
 		}
 	}
 
