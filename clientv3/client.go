@@ -304,7 +304,8 @@ func (c *Client) getToken(ctx context.Context) error {
 		defer auth.close()
 
 		var resp *AuthenticateResponse
-		resp, err = auth.authenticate(ctx, c.Username, c.Password)
+		subctx, _ := context.WithTimeout(context.TODO(), time.Second*1)
+		resp, err = auth.authenticate(subctx, c.Username, c.Password)
 		if err != nil {
 			continue
 		}
