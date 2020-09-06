@@ -460,6 +460,7 @@ func newClient(cfg *Config) (*Client, error) {
 		client.cancel()
 		client.resolverGroup.Close()
 		cancel()
+		client.Close()
 		return nil, err
 	}
 	cancel()
